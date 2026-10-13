@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                 if (t == cur) urlBar.setText(u.startsWith("file:///android_asset") ? "" : u);
             }
             @Override public void onPageFinished(WebView v, String u) {
-                String ti = v.getTitle();
+                String ti = v.getTitle(); webTheme(v);
                 if (ti != null && !ti.isEmpty()) t.title = ti;
                 if (!t.incog) Store.addHistory(MainActivity.this, t.title, u);
             }
@@ -136,6 +136,7 @@ public class MainActivity extends AppCompatActivity {
         urlBar.setBackgroundResource(t.incog ? R.drawable.url_bg_incog : R.drawable.url_bg);
         progress.setVisibility(View.GONE);
         btnTabs.setText("[" + tabs.size() + "]");
+        applyTheme();
     }
 
     void closeTab(Tab t) {
@@ -183,6 +184,10 @@ public class MainActivity extends AppCompatActivity {
         pm.getMenu().add(0, 10, 9, "Desktop site");
         pm.getMenu().add(0, 11, 10, "Translate page");
         pm.getMenu().add(0, 12, 11, "Find in page");
+        pm.getMenu().add(0, 13, 12, "Share");
+        pm.getMenu().add(0, 14, 13, "Copy link");
+        pm.getMenu().add(0, 15, 14, "Copy page text");
+        pm.getMenu().add(0, 16, 15, "QR Scanner");
         pm.setOnMenuItemClickListener(i -> {
             switch (i.getItemId()) {
                 case 1: newTab(false); break;
@@ -197,6 +202,10 @@ public class MainActivity extends AppCompatActivity {
                 case 10: toggleDesktop(); break;
                 case 11: translate(); break;
                 case 12: findInPage(); break;
+                case 13: share(); break;
+                case 14: copyLink(); break;
+                case 15: copyText(); break;
+                case 16: scanQr(); break;
             }
             return true;
         });
@@ -256,5 +265,99 @@ public class MainActivity extends AppCompatActivity {
             .setPositiveButton("Find", (d, w) -> cur.wv.findAllAsync(e.getText().toString()))
             .setNegativeButton("Clear", (d, w) -> cur.wv.clearMatches())
             .show();
+    }
+
+    boolean isLight() {
+        int t = Prefs.theme(this);
+        if (t == 1) return true;
+        if (t == 0) return false;
+        return (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                != android.content.res.Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    void applyTheme() {
+        boolean l = isLight();
+        findViewById(R.id.rootLayout).setBackgroundColor(l ? 0xFFF4F6FA : 0xFF050B1E);
+        ViewGroup bb = findViewById(R.id.bottomBar);
+        bb.setBackgroundColor(l ? 0xFFE3E8F2 : 0xFF0A1530);
+        for (int i = 0; i < bb.getChildCount(); i++) {
+            View c = bb.getChildAt(i);
+            if (c instanceof Button && c.getId() != R.id.btnTabs)
+                ((Button) c).setTextColor(l ? 0xFF1B2540 : 0xFFFFFFFF);
+        }
+        if (cur != null) {
+            if (cur.incog) {
+                urlBar.setBackgroundResource(R.drawable.url_bg_incog);
+                urlBar.setTextColor(0xFFFFFFFF);
+            } else {
+                urlBar.setBackgroundResource(l ? R.drawable.url_bg_light : R.drawable.url_bg);
+                urlBar.setTextColor(l ? 0xFF14213D : 0xFFFFFFFF);
+            }
+            webTheme(cur.wv);
+        }
+    }
+
+    void webTheme(WebView w) {
+        String u = w.getUrl();
+        if (u != null && u.startsWith("file:///android_asset") && !u.contains("incognito"))
+            w.evaluateJavascript("document.body.classList.toggle('light'," + isLight() + ")", null);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (cur != null) applyTheme();
+    }
+
+    @Override
+    public void onConfigurationChanged(android.content.res.Configuration c) {
+        super.onConfigurationChanged(c);
+        if (cur != null) applyTheme();
+    }
+
+    void toast(String s) { Toast.makeText(this, s, Toast.LENGTH_SHORT).show(); }
+
+    void copy(String t) {
+        android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        cm.setPrimaryClip(android.content.ClipData.newPlainText("MT Browser", t));
+    }
+
+    void share() {
+        String u = cur.wv.getUrl();
+        if (u == null || u.startsWith("file:")) { toast("Pehle koi website kholo"); return; }
+        android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_SEND);
+        i.setType("text/plain");
+        i.putExtra(android.content.Intent.EXTRA_TEXT, u);
+        startActivity(android.content.Intent.createChooser(i, "Share via"));
+    }
+
+    void copyLink() {
+        String u = cur.wv.getUrl();
+        if (u == null || u.startsWith("file:")) { toast("Pehle koi website kholo"); return; }
+        copy(u);
+        toast("Link copy ho gaya");
+    }
+
+    void copyText() {
+        cur.wv.evaluateJavascript("(function(){var s=window.getSelection().toString();return s?s:document.body.innerText;})()", r -> {
+            try {
+                String t = String.valueOf(new org.json.JSONTokener(r).nextValue());
+                copy(t.length() > 100000 ? t.substring(0, 100000) : t);
+                toast("Text copy ho gaya");
+            } catch (Exception e) { toast("Text copy nahi hua"); }
+        });
+    }
+
+    void scanQr() {
+        com.google.mlkit.vision.codescanner.GmsBarcodeScanning.getClient(this).startScan()
+            .addOnSuccessListener(code -> {
+                final String v = code.getRawValue();
+                if (v == null) return;
+                new AlertDialog.Builder(this).setTitle("QR Result").setMessage(v)
+                    .setPositiveButton("Open", (d, w) -> load(v))
+                    .setNegativeButton("Copy", (d, w) -> { copy(v); toast("Copy ho gaya"); })
+                    .show();
+            })
+            .addOnFailureListener(e -> toast("Scanner nahi khula: " + e.getMessage()));
     }
 }

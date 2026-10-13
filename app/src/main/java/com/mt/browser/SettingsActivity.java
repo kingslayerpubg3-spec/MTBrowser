@@ -69,6 +69,7 @@ public class SettingsActivity extends AppCompatActivity {
                     engineSub.setText(Prefs.engineName(this));
                 }).show());
 
+        final TextView[] ts = new TextView[1]; ts[0] = (TextView) row("Themes", Prefs.themeName(this), null, v -> new AlertDialog.Builder(this).setTitle("Theme").setItems(new String[]{"Dark", "Light", "Auto (system)"}, (d, i) -> { Prefs.setTheme(this, i); ts[0].setText(Prefs.themeName(this)); }).show());
         row("Clear Data", "History, bookmarks, cookies, cache", null, v ->
             new AlertDialog.Builder(this).setTitle("Clear all data?")
                 .setPositiveButton("Clear", (d, i) -> {
