@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/rootLayout"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:orientation="vertical" android:background="#050B1E">
@@ -38,23 +37,23 @@
             android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
             android:padding="16dp" android:src="@drawable/ic_fwd"
             android:background="?attr/selectableItemBackgroundBorderless" />
+        <ImageButton android:id="@+id/btnMenu"
+            android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+            android:padding="16dp" android:src="@drawable/ic_menu"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnTabs"
+                android:layout_width="40dp" android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:background="@drawable/ic_ghost"
+                android:gravity="bottom|end" android:padding="0dp"
+                android:minWidth="0dp" android:minHeight="0dp"
+                android:text="1" android:textSize="11sp" android:textStyle="bold"
+                android:textColor="#2E8BFF" />
+        </FrameLayout>
         <ImageButton android:id="@+id/btnHome"
             android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
             android:padding="16dp" android:src="@drawable/ic_home"
-            android:background="?attr/selectableItemBackgroundBorderless" />
-        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
-            <Button android:id="@+id/btnTabs"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="34dp" android:layout_height="28dp"
-                android:layout_gravity="center"
-                android:minWidth="0dp" android:minHeight="0dp" android:padding="0dp"
-                android:insetTop="0dp" android:insetBottom="0dp"
-                android:text="1" android:textSize="12sp" android:textColor="#2E8BFF"
-                app:strokeColor="#2E8BFF" app:strokeWidth="2dp" app:cornerRadius="8dp" />
-        </FrameLayout>
-        <ImageButton android:id="@+id/btnMenu"
-            android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
-            android:padding="16dp" android:src="@drawable/ic_more"
             android:background="?attr/selectableItemBackgroundBorderless" />
     </LinearLayout>
 </LinearLayout>

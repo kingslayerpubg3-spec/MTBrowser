@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnFwd).setOnClickListener(v -> { if (cur.wv.canGoForward()) cur.wv.goForward(); });
         findViewById(R.id.btnHome).setOnClickListener(v -> cur.wv.loadUrl(cur.incog ? INCOG : HOME));
         btnTabs.setOnClickListener(v -> showTabs());
-        findViewById(R.id.btnMenu).setOnClickListener(this::showMenu);
+        findViewById(R.id.btnMenu).setOnClickListener(v -> MenuSheet.show(MainActivity.this));
 
         newTab(false);
     }
