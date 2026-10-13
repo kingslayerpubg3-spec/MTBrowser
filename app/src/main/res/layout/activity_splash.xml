@@ -4,9 +4,9 @@
     android:orientation="vertical" android:gravity="center"
     android:background="#050B1E">
     <ImageView
-        android:layout_width="150dp" android:layout_height="150dp"
+        android:layout_width="160dp" android:layout_height="160dp" android:scaleType="fitCenter"
 
-        android:src="@drawable/ic_logo" />
+        android:src="@drawable/ic_logo_full" />
     <TextView
         android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:layout_marginTop="24dp" android:text="MT Browser"
