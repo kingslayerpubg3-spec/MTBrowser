@@ -14,8 +14,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.5'
-      - run: gradle assembleDebug --no-daemon
+      - name: Keystore
+        env:
+          KS_B64: ${{ secrets.KS_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/mt.jks"
+            echo "KS_FILE=$RUNNER_TEMP/mt.jks" >> $GITHUB_ENV
+          fi
+      - name: Build release
+        env:
+          KS_PASS: ${{ secrets.KS_PASS }}
+        run: gradle assembleRelease --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: MTBrowser-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: MTBrowser-Release-APK
+          path: app/build/outputs/apk/release/*.apk
