@@ -5,7 +5,7 @@
     android:background="#050B1E">
     <ImageView
         android:layout_width="150dp" android:layout_height="150dp"
-        android:background="#0A1530"
+        android:background="@drawable/ic_bg_round"
         android:src="@drawable/ic_fg" />
     <TextView
         android:layout_width="wrap_content" android:layout_height="wrap_content"

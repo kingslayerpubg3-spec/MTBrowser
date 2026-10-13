@@ -137,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
         urlBar.setText(u == null || u.startsWith("file:///android_asset") ? "" : u);
         urlBar.setBackgroundResource(t.incog ? R.drawable.url_bg_incog : R.drawable.url_bg);
         progress.setVisibility(View.GONE);
-        btnTabs.setText("[" + tabs.size() + "]");
+        btnTabs.setText(String.valueOf(tabs.size()));
         applyTheme();
     }
 
@@ -288,6 +288,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.rootLayout).setBackgroundColor(l ? 0xFFF4F6FA : 0xFF050B1E);
         ViewGroup bb = findViewById(R.id.bottomBar);
         bb.setBackgroundColor(l ? 0xFFE3E8F2 : 0xFF0A1530);
+        for (int k = 0; k < bb.getChildCount(); k++) { View c2 = bb.getChildAt(k); if (c2 instanceof ImageButton) ((ImageButton) c2).setColorFilter(l ? 0xFF1B2540 : 0xFFFFFFFF); }
         for (int i = 0; i < bb.getChildCount(); i++) {
             View c = bb.getChildAt(i);
             if (c instanceof Button && c.getId() != R.id.btnTabs)

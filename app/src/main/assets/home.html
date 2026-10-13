@@ -1,44 +1,48 @@
-<!DOCTYPE html>
-<html><head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  body{margin:0;background:#050B1E;color:#fff;font-family:sans-serif;padding:20px 16px}
-  h1{font-size:26px;margin:20px 0 4px;text-align:center}
-  h1 span{color:#2E8BFF}
-  p.tag{text-align:center;color:#8A94A8;font-size:13px;margin:0 0 22px;font-style:italic}
-  form{display:flex;background:#14213D;border-radius:26px;padding:4px 16px;margin-bottom:26px}
-  input{flex:1;background:none;border:0;outline:0;color:#fff;font-size:16px;padding:12px 0}
-  button{background:none;border:0;color:#2E8BFF;font-size:18px}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px 8px}
-  a{text-decoration:none;color:#cfd6e4;text-align:center;font-size:12px}
-  .ic{width:54px;height:54px;border-radius:15px;margin:0 auto 6px;display:flex;
-      align-items:center;justify-content:center;font-size:24px;font-weight:bold;color:#fff}
-  h3{font-size:14px;color:#8A94A8;margin:30px 0 10px}
-  .q a{display:block;text-align:left;background:#0F1A33;padding:13px 14px;
-       border-radius:12px;margin-bottom:8px;font-size:14px}
-  body.light{background:#F4F6FA;color:#14213D} body.light form{background:#E3E8F2} body.light input{color:#14213D} body.light a{color:#33415c} body.light .q a{background:#E3E8F2} body.light h3{color:#5a6785}
+:root{--bg1:#0B1E4A;--bg2:#050B1E;--card:rgba(255,255,255,.07);--bd:rgba(255,255,255,.10);--tx:#fff;--sub:#8FA0C0;--ac:#2E8BFF}
+body.light{--bg1:#DCE8FF;--bg2:#F4F6FA;--card:#fff;--bd:#E0E6F2;--tx:#14213D;--sub:#5A6785}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;color:var(--tx);font-family:sans-serif;padding:28px 18px 40px;background:linear-gradient(180deg,var(--bg1),var(--bg2) 55%) fixed}
+.logo{width:68px;height:68px;border-radius:20px;margin:6px auto 14px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#12306F,#050B1E);box-shadow:0 0 28px rgba(46,139,255,.55);font-weight:900;font-size:26px}
+.logo b{color:#4FA3FF}.logo i{color:#fff;font-style:normal}
+h1{margin:0;text-align:center;font-size:28px}
+h1 span{background:linear-gradient(90deg,#4FC3FF,#2E6BFF);-webkit-background-clip:text;color:transparent}
+.tag{text-align:center;color:var(--sub);font-size:12px;margin:6px 0 22px;letter-spacing:2px}
+form{display:flex;align-items:center;background:var(--card);border:1px solid var(--bd);border-radius:28px;padding:4px 8px 4px 18px;margin-bottom:26px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--tx);font-size:16px;padding:13px 0}
+input::placeholder{color:var(--sub)}
+button{width:40px;height:40px;border:0;border-radius:50%;background:var(--ac);color:#fff;font-size:17px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 6px}
+.grid a{text-decoration:none;color:var(--tx);text-align:center;font-size:12px}
+.ic{width:58px;height:58px;border-radius:18px;margin:0 auto 7px;background:#F1F4FA;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.25);overflow:hidden}
+.ic img{width:34px;height:34px}
+.ic span{display:none;font-weight:800;font-size:22px;color:#14213D}
+.ic.fb span{display:block}
+h3{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--sub);margin:30px 4px 12px}
+.q{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.q a{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;font-size:14px}
+.q em{font-style:normal;font-size:20px}
 </style></head><body>
+<div class="logo"><b>M</b><i>T</i></div>
 <h1><span>MT</span> Browser</h1>
-<p class="tag">Fast • Safe • Smart</p>
+<p class="tag">FAST • SAFE • SMART</p>
 <form action="https://www.google.com/search" method="get">
-  <input name="q" placeholder="Search or type URL" autocomplete="off">
-  <button type="submit">🔍</button>
+<input name="q" placeholder="Search or type URL" autocomplete="off"><button type="submit">&#128269;</button>
 </form>
-<div class="grid">
-  <a href="https://m.youtube.com"><div class="ic" style="background:#FF0000">▶</div>YouTube</a>
-  <a href="https://m.facebook.com"><div class="ic" style="background:#1877F2">f</div>Facebook</a>
-  <a href="https://www.instagram.com"><div class="ic" style="background:linear-gradient(45deg,#f9a825,#e91e63,#7b1fa2)">◎</div>Instagram</a>
-  <a href="https://x.com"><div class="ic" style="background:#000;border:1px solid #333">X</div>X</a>
-  <a href="https://en.wikipedia.org"><div class="ic" style="background:#fff;color:#000">W</div>Wikipedia</a>
-  <a href="https://www.amazon.in"><div class="ic" style="background:#FF9900">a</div>Amazon</a>
-  <a href="https://www.flipkart.com"><div class="ic" style="background:#2874F0">F</div>Flipkart</a>
-  <a href="https://www.google.com"><div class="ic" style="background:#34A853">G</div>Google</a>
-</div>
+<div class="grid" id="g"></div>
 <h3>Quick Access</h3>
 <div class="q">
-  <a href="mt://bookmarks">⭐  Bookmarks</a>
-  <a href="mt://downloads">⬇  Downloads</a>
-  <a href="mt://history">🕘  History</a>
-  <a href="mt://settings">⚙  Settings</a>
+<a href="mt://bookmarks"><em>⭐</em>Bookmarks</a>
+<a href="mt://downloads"><em>⬇️</em>Downloads</a>
+<a href="mt://history"><em>🕘</em>History</a>
+<a href="mt://settings"><em>⚙️</em>Settings</a>
 </div>
+<script>
+var S=[["YouTube","https://m.youtube.com","youtube.com"],["Facebook","https://m.facebook.com","facebook.com"],["Instagram","https://www.instagram.com","instagram.com"],["X","https://x.com","x.com"],["Wikipedia","https://en.wikipedia.org","wikipedia.org"],["Amazon","https://www.amazon.in","amazon.in"],["Flipkart","https://www.flipkart.com","flipkart.com"],["Google","https://www.google.com","google.com"],["Gmail","https://mail.google.com","mail.google.com"],["Maps","https://maps.google.com","maps.google.com"],["WhatsApp","https://web.whatsapp.com","whatsapp.com"],["Reddit","https://www.reddit.com","reddit.com"]];
+var h="";
+S.forEach(function(s){h+='<a href="'+s[1]+'"><div class="ic"><img src="https://www.google.com/s2/favicons?domain='+s[2]+'&sz=128" onerror="this.parentNode.classList.add(\'fb\');this.style.display=\'none\'"><span>'+s[0][0]+'</span></div>'+s[0]+'</a>';});
+document.getElementById("g").innerHTML=h;
+</script>
 </body></html>
