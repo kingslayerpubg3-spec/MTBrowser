@@ -104,6 +104,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         w.setWebChromeClient(new WebChromeClient() {
+            @Override public void onShowCustomView(View view, CustomViewCallback cb) { showFull(view, cb); }
+            @Override public void onHideCustomView() { hideFull(); }
             @Override public void onProgressChanged(WebView v, int p) {
                 if (t != cur) return;
                 progress.setProgress(p);
@@ -188,6 +190,8 @@ public class MainActivity extends AppCompatActivity {
         pm.getMenu().add(0, 14, 13, "Copy link");
         pm.getMenu().add(0, 15, 14, "Copy page text");
         pm.getMenu().add(0, 16, 15, "QR Scanner");
+        pm.getMenu().add(0, 17, 16, "Smart Download");
+        pm.getMenu().add(0, 18, 17, "Pop-up video (PiP)");
         pm.setOnMenuItemClickListener(i -> {
             switch (i.getItemId()) {
                 case 1: newTab(false); break;
@@ -206,6 +210,8 @@ public class MainActivity extends AppCompatActivity {
                 case 14: copyLink(); break;
                 case 15: copyText(); break;
                 case 16: scanQr(); break;
+                case 17: smartDownload(); break;
+                case 18: enterPip(); break;
             }
             return true;
         });
@@ -221,6 +227,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        if (fullView != null) { hideFull(); return; }
         if (cur.wv.canGoBack()) cur.wv.goBack();
         else if (tabs.size() > 1) closeTab(cur);
         else super.onBackPressed();
@@ -359,5 +366,96 @@ public class MainActivity extends AppCompatActivity {
                     .show();
             })
             .addOnFailureListener(e -> toast("Scanner nahi khula: " + e.getMessage()));
+    }
+
+    View fullView;
+    WebChromeClient.CustomViewCallback fullCb;
+
+    void showFull(View v, WebChromeClient.CustomViewCallback cb) {
+        if (fullView != null) { cb.onCustomViewHidden(); return; }
+        fullView = v;
+        fullCb = cb;
+        ((ViewGroup) getWindow().getDecorView()).addView(v, new ViewGroup.LayoutParams(-1, -1));
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+    }
+
+    void hideFull() {
+        if (fullView == null) return;
+        ((ViewGroup) getWindow().getDecorView()).removeView(fullView);
+        fullView = null;
+        if (fullCb != null) fullCb.onCustomViewHidden();
+        fullCb = null;
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+    }
+
+    void enterPip() {
+        try {
+            enterPictureInPictureMode(new android.app.PictureInPictureParams.Builder()
+                .setAspectRatio(new android.util.Rational(16, 9)).build());
+        } catch (Exception e) { toast("PiP is device me nahi chal raha"); }
+    }
+
+    @Override
+    public void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        if (fullView != null) enterPip();
+    }
+
+    @Override
+    public void onPictureInPictureModeChanged(boolean pip, android.content.res.Configuration c) {
+        super.onPictureInPictureModeChanged(pip, c);
+        int vis = pip ? View.GONE : View.VISIBLE;
+        findViewById(R.id.urlBar).setVisibility(vis);
+        findViewById(R.id.bottomBar).setVisibility(vis);
+        if (pip) progress.setVisibility(View.GONE);
+    }
+
+    void smartDownload() {
+        String js;
+        try {
+            java.io.InputStream in = getAssets().open("detect.js");
+            byte[] bytes = new byte[in.available()];
+            in.read(bytes);
+            in.close();
+            js = new String(bytes);
+        } catch (Exception e) { toast("detect.js nahi mili"); return; }
+        cur.wv.evaluateJavascript(js, r -> {
+            try {
+                String s = String.valueOf(new org.json.JSONTokener(r).nextValue());
+                org.json.JSONArray a = new org.json.JSONArray(s);
+                if (a.length() == 0) { toast("Is page par direct video/file nahi mila"); return; }
+                final String[] urls = new String[a.length()];
+                String[] names = new String[a.length()];
+                for (int i = 0; i < a.length(); i++) {
+                    org.json.JSONObject o = a.getJSONObject(i);
+                    urls[i] = o.getString("u");
+                    String l = o.getString("l");
+                    names[i] = (l.isEmpty() ? "" : l + " • ") + URLUtil.guessFileName(urls[i], null, null);
+                }
+                new AlertDialog.Builder(this).setTitle("Smart Download (" + a.length() + ")")
+                    .setItems(names, (d, i) -> startDownload(urls[i])).show();
+            } catch (Exception e) { toast("Detect nahi hua"); }
+        });
+    }
+
+    void startDownload(String url) {
+        try {
+            DownloadManager.Request rq = new DownloadManager.Request(Uri.parse(url));
+            String name = URLUtil.guessFileName(url, null, null);
+            rq.setTitle(name);
+            String ck = CookieManager.getInstance().getCookie(url);
+            if (ck != null) rq.addRequestHeader("Cookie", ck);
+            rq.addRequestHeader("User-Agent", cur.wv.getSettings().getUserAgentString());
+            if (cur.wv.getUrl() != null) rq.addRequestHeader("Referer", cur.wv.getUrl());
+            rq.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            rq.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
+            ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(rq);
+            toast("Downloading: " + name);
+        } catch (Exception e) { toast("Download start nahi hua"); }
     }
 }
