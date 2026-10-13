@@ -92,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
         if (incog) s.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         w.setWebViewClient(new WebViewClient() {
+            @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) { return (Prefs.adBlock(MainActivity.this) && AdBlock.isAd(r.getUrl().getHost())) ? new WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0])) : null; }
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return handleInternal(r.getUrl().toString()); }
             @Override public void onPageStarted(WebView v, String u, Bitmap f) {
                 if (t == cur) urlBar.setText(u.startsWith("file:///android_asset") ? "" : u);
@@ -178,6 +179,10 @@ public class MainActivity extends AppCompatActivity {
         pm.getMenu().add(0, 6, 5, "Bookmarks");
         pm.getMenu().add(0, 7, 6, "History");
         pm.getMenu().add(0, 8, 7, "Downloads");
+        pm.getMenu().add(0, 9, 8, "Settings");
+        pm.getMenu().add(0, 10, 9, "Desktop site");
+        pm.getMenu().add(0, 11, 10, "Translate page");
+        pm.getMenu().add(0, 12, 11, "Find in page");
         pm.setOnMenuItemClickListener(i -> {
             switch (i.getItemId()) {
                 case 1: newTab(false); break;
@@ -188,6 +193,10 @@ public class MainActivity extends AppCompatActivity {
                 case 6: openLib("bookmarks"); break;
                 case 7: openLib("history"); break;
                 case 8: openLib("downloads"); break;
+                case 9: openSettings(); break;
+                case 10: toggleDesktop(); break;
+                case 11: translate(); break;
+                case 12: findInPage(); break;
             }
             return true;
         });
@@ -198,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
         if (q.isEmpty()) return;
         if (q.startsWith("http://") || q.startsWith("https://")) cur.wv.loadUrl(q);
         else if (q.contains(".") && !q.contains(" ")) cur.wv.loadUrl("https://" + q);
-        else cur.wv.loadUrl("https://www.google.com/search?q=" + Uri.encode(q));
+        else cur.wv.loadUrl(Prefs.searchUrl(this) + Uri.encode(q));
     }
 
     @Override
@@ -206,4 +215,46 @@ public class MainActivity extends AppCompatActivity {
         if (cur.wv.canGoBack()) cur.wv.goBack();
         else if (tabs.size() > 1) closeTab(cur);
         else super.onBackPressed();
+
+    void openSettings() {
+        startActivity(new android.content.Intent(this, SettingsActivity.class));
     }
+
+    void toggleDesktop() {
+        WebSettings s = cur.wv.getSettings();
+        boolean isDesk = s.getUserAgentString().contains("X11; Linux x86_64");
+        if (isDesk) {
+            s.setUserAgentString(null);
+            s.setUseWideViewPort(false);
+            s.setLoadWithOverviewMode(false);
+        } else {
+            s.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            s.setUseWideViewPort(true);
+            s.setLoadWithOverviewMode(true);
+        }
+        cur.wv.reload();
+        Toast.makeText(this, isDesk ? "Mobile site" : "Desktop site", Toast.LENGTH_SHORT).show();
+    }
+
+    void translate() {
+        final String u = cur.wv.getUrl();
+        if (u == null || u.startsWith("file:")) {
+            Toast.makeText(this, "Pehle koi website kholo", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final String[] n = {"Hindi", "English", "Urdu", "Bengali", "Tamil", "Telugu", "Marathi", "Gujarati", "Punjabi"};
+        final String[] c = {"hi", "en", "ur", "bn", "ta", "te", "mr", "gu", "pa"};
+        new AlertDialog.Builder(this).setTitle("Translate to")
+            .setItems(n, (d, i) -> cur.wv.loadUrl("https://translate.google.com/translate?sl=auto&tl=" + c[i] + "&u=" + Uri.encode(u)))
+            .show();
+    }
+
+    void findInPage() {
+        final EditText e = new EditText(this);
+        e.setHint("Page me search karo");
+        new AlertDialog.Builder(this).setTitle("Find in page").setView(e)
+            .setPositiveButton("Find", (d, w) -> cur.wv.findAllAsync(e.getText().toString()))
+            .setNegativeButton("Clear", (d, w) -> cur.wv.clearMatches())
+            .show();
+    }
+}
