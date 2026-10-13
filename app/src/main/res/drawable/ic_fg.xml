@@ -1,2 +1,7 @@
-<inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/ic_logo" android:inset="17%" />
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+<group android:scaleX="0.072" android:scaleY="0.072" android:translateX="9.7" android:translateY="8.1">
+<path android:pathData="M355,403 L592,530 L936,357 L936,462 L727,562 L727,590 L583,675 L466,592 L466,782 L356,793 Z"><aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="936" android:startY="357" android:endX="420" android:endY="790" android:startColor="#00E5FF" android:endColor="#0A5CFF"/></aapt:attr></path>
+<path android:fillColor="#F4F8FF" android:pathData="M727,568 L1018,455 L1018,527 L857,606 L857,866 L752,920 L752,672 L612,740 L612,692 L727,628 Z"/>
+<path android:pathData="M335,657 C285,715 262,775 300,800 C380,825 560,790 717,727 L717,735 C560,830 330,890 240,840 C180,800 230,710 335,657 Z"><aapt:attr name="android:fillColor"><gradient android:type="linear" android:startX="216" android:startY="800" android:endX="717" android:endY="760" android:startColor="#2AE0FF" android:endColor="#1A7BFF"/></aapt:attr></path>
+</group>
+</vector>
