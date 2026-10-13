@@ -28,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
         WebView wv;
         boolean incog;
         String title = "New Tab";
+        android.graphics.Bitmap thumb;
     }
 
     ArrayList<Tab> tabs = new ArrayList<>();
@@ -59,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnBack).setOnClickListener(v -> { if (cur.wv.canGoBack()) cur.wv.goBack(); });
         findViewById(R.id.btnFwd).setOnClickListener(v -> { if (cur.wv.canGoForward()) cur.wv.goForward(); });
         findViewById(R.id.btnHome).setOnClickListener(v -> cur.wv.loadUrl(cur.incog ? INCOG : HOME));
-        btnTabs.setOnClickListener(v -> showTabs());
+        btnTabs.setOnClickListener(v -> TabSwitcher.show(MainActivity.this));
         findViewById(R.id.btnMenu).setOnClickListener(v -> MenuSheet.show(MainActivity.this));
 
         newTab(false);
@@ -129,6 +130,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void switchTo(Tab t) {
+        TabSwitcher.capture(this, cur);
         container.removeAllViews();
         container.addView(t.wv, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));

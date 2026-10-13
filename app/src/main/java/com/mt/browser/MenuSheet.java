@@ -12,34 +12,32 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 public class MenuSheet {
     static int dp(MainActivity a, int v) { return (int) (v * a.getResources().getDisplayMetrics().density); }
-
-    static LinearLayout.LayoutParams w() {
-        return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-    }
+    static LinearLayout.LayoutParams w() { return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); }
 
     static LinearLayout row(MainActivity a) {
         LinearLayout r = new LinearLayout(a);
-        r.setOrientation(LinearLayout.HORIZONTAL);
         r.setPadding(0, dp(a, 10), 0, 0);
         return r;
     }
 
-    static View item(final MainActivity a, final BottomSheetDialog d, String glyph, String label,
-                     int color, boolean filled, int tx, final Runnable run) {
+    static View item(final MainActivity a, final BottomSheetDialog d, int res, String label,
+                     int color, int tx, final Runnable run) {
         LinearLayout c = new LinearLayout(a);
         c.setOrientation(LinearLayout.VERTICAL);
         c.setGravity(Gravity.CENTER_HORIZONTAL);
         c.setPadding(0, dp(a, 6), 0, dp(a, 6));
-        TextView ic = new TextView(a);
-        ic.setText(glyph);
-        ic.setGravity(Gravity.CENTER);
-        ic.setTextSize(filled ? 22 : 26);
-        ic.setTextColor(filled ? Color.WHITE : tx);
-        if (filled) {
+        ImageView ic = new ImageView(a);
+        ic.setImageResource(res);
+        int p = dp(a, color != 0 ? 15 : 12);
+        ic.setPadding(p, p, p, p);
+        if (color != 0) {
             GradientDrawable g = new GradientDrawable();
             g.setShape(GradientDrawable.OVAL);
             g.setColor(color);
             ic.setBackground(g);
+            ic.setColorFilter(Color.WHITE);
+        } else {
+            ic.setColorFilter(tx);
         }
         c.addView(ic, new LinearLayout.LayoutParams(dp(a, 54), dp(a, 54)));
         TextView t = new TextView(a);
@@ -54,15 +52,13 @@ public class MenuSheet {
         return c;
     }
 
-    static TextView bottomBtn(final MainActivity a, String g, int tx, View.OnClickListener cl) {
-        TextView t = new TextView(a);
-        t.setText(g);
-        t.setTextSize(24);
-        t.setTextColor(tx);
-        t.setGravity(Gravity.CENTER);
-        t.setPadding(0, dp(a, 10), 0, dp(a, 4));
-        t.setOnClickListener(cl);
-        return t;
+    static ImageView bottomBtn(MainActivity a, int res, int tx, View.OnClickListener cl) {
+        ImageView v = new ImageView(a);
+        v.setImageResource(res);
+        v.setColorFilter(tx);
+        v.setPadding(dp(a, 10), dp(a, 12), dp(a, 10), dp(a, 8));
+        v.setOnClickListener(cl);
+        return v;
     }
 
     static void tools(final MainActivity a) {
@@ -98,7 +94,6 @@ public class MenuSheet {
         root.setBackground(rb);
 
         LinearLayout h = new LinearLayout(a);
-        h.setOrientation(LinearLayout.HORIZONTAL);
         h.setGravity(Gravity.CENTER_VERTICAL);
         ImageView logo = new ImageView(a);
         logo.setImageResource(R.drawable.ic_logo_full);
@@ -119,9 +114,12 @@ public class MenuSheet {
         tb.addView(t2);
         h.addView(tb, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         TextView pill = new TextView(a);
-        pill.setText("🕶  Incognito");
+        pill.setText("Incognito");
         pill.setTextSize(13);
         pill.setTextColor(l ? 0xFF5B3FD0 : 0xFFC9B3FF);
+        pill.setGravity(Gravity.CENTER_VERTICAL);
+        pill.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_ghost_s, 0, 0, 0);
+        pill.setCompoundDrawablePadding(dp(a, 8));
         pill.setPadding(dp(a, 14), dp(a, 10), dp(a, 14), dp(a, 10));
         GradientDrawable pb = new GradientDrawable();
         pb.setColor(l ? 0xFFEDEBF8 : 0xFF2A1646);
@@ -132,22 +130,22 @@ public class MenuSheet {
         root.addView(h);
 
         LinearLayout r1 = row(a);
-        r1.addView(item(a, d, "🔖", "Bookmarks", 0xFF14C9A8, true, tx, () -> a.openLib("bookmarks")), w());
-        r1.addView(item(a, d, "🕘", "History", 0xFFFFB300, true, tx, () -> a.openLib("history")), w());
-        r1.addView(item(a, d, "⬇", "Downloads", 0xFF4C8DFF, true, tx, () -> a.openLib("downloads")), w());
-        r1.addView(item(a, d, "🧰", "Tools", 0xFF8E5CFF, true, tx, () -> tools(a)), w());
-        r1.addView(item(a, d, "📷", "QR Scan", 0xFFFF8F3A, true, tx, () -> a.scanQr()), w());
+        r1.addView(item(a, d, R.drawable.ic_m_bookmark, "Bookmarks", 0xFF14C9A8, tx, () -> a.openLib("bookmarks")), w());
+        r1.addView(item(a, d, R.drawable.ic_m_history, "History", 0xFFFFB300, tx, () -> a.openLib("history")), w());
+        r1.addView(item(a, d, R.drawable.ic_m_download, "Downloads", 0xFF4C8DFF, tx, () -> a.openLib("downloads")), w());
+        r1.addView(item(a, d, R.drawable.ic_m_tools, "Tools", 0xFF8E5CFF, tx, () -> tools(a)), w());
+        r1.addView(item(a, d, R.drawable.ic_m_qr, "QR Scan", 0xFFFF8F3A, tx, () -> a.scanQr()), w());
         root.addView(r1);
 
         LinearLayout r2 = row(a);
-        r2.addView(item(a, d, "☆", "Add bookmark", 0, false, tx, () -> a.addBookmark()), w());
-        r2.addView(item(a, d, "☾", "Night", 0, false, tx, () -> {
+        r2.addView(item(a, d, R.drawable.ic_m_star, "Add bookmark", 0, tx, () -> a.addBookmark()), w());
+        r2.addView(item(a, d, R.drawable.ic_m_moon, "Night", 0, tx, () -> {
             Prefs.setTheme(a, a.isLight() ? 0 : 1);
             a.applyTheme();
         }), w());
-        r2.addView(item(a, d, "⟳", "Refresh", 0, false, tx, () -> a.cur.wv.reload()), w());
-        r2.addView(item(a, d, "+", "New tab", 0, false, tx, () -> a.newTab(false)), w());
-        r2.addView(item(a, d, "↗", "Share", 0, false, tx, () -> a.share()), w());
+        r2.addView(item(a, d, R.drawable.ic_m_refresh, "Refresh", 0, tx, () -> a.cur.wv.reload()), w());
+        r2.addView(item(a, d, R.drawable.ic_m_add, "New tab", 0, tx, () -> a.newTab(false)), w());
+        r2.addView(item(a, d, R.drawable.ic_m_share, "Share", 0, tx, () -> a.share()), w());
         root.addView(r2);
 
         View line = new View(a);
@@ -157,10 +155,9 @@ public class MenuSheet {
         root.addView(line, lp);
 
         LinearLayout bb = new LinearLayout(a);
-        bb.setOrientation(LinearLayout.HORIZONTAL);
-        bb.addView(bottomBtn(a, "⚙", tx, v -> { d.dismiss(); a.openSettings(); }), w());
-        bb.addView(bottomBtn(a, "▾", tx, v -> d.dismiss()), w());
-        bb.addView(bottomBtn(a, "⏻", tx, v -> { d.dismiss(); a.finishAffinity(); }), w());
+        bb.addView(bottomBtn(a, R.drawable.ic_m_settings, tx, v -> { d.dismiss(); a.openSettings(); }), w());
+        bb.addView(bottomBtn(a, R.drawable.ic_m_down, tx, v -> d.dismiss()), w());
+        bb.addView(bottomBtn(a, R.drawable.ic_m_power, tx, v -> { d.dismiss(); a.finishAffinity(); }), w());
         root.addView(bb);
 
         d.setContentView(root);
