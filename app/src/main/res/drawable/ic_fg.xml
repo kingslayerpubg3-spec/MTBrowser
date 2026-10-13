@@ -1,15 +1,2 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <path android:pathData="M24,72 L24,36 L34,36 L41,52 L48,36 L58,36 L58,72 L49,72 L49,52 L41,63 L33,52 L33,72 Z">
-        <aapt:attr name="android:fillColor">
-            <gradient android:startX="24" android:startY="36" android:endX="58" android:endY="72"
-                android:startColor="#5CC8FF" android:endColor="#1F6BFF" />
-        </aapt:attr>
-    </path>
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M56,36 L86,36 L86,46 L76,46 L76,72 L66,72 L66,46 L56,46 Z" />
-    <path android:strokeColor="#3D95FF" android:strokeWidth="3.5" android:strokeLineCap="round"
-        android:pathData="M30,79 Q52,88 80,68" />
-</vector>
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_logo" android:inset="17%" />
