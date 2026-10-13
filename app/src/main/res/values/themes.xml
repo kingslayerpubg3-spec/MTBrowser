@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.MT" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:statusBarColor">#050B1E</item>
+        <item name="android:navigationBarColor">#050B1E</item>
+        <item name="android:windowBackground">#050B1E</item>
+    </style>
+</resources>
