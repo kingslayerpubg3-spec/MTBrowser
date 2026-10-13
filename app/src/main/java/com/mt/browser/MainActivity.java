@@ -231,6 +231,7 @@ public class MainActivity extends AppCompatActivity {
         if (cur.wv.canGoBack()) cur.wv.goBack();
         else if (tabs.size() > 1) closeTab(cur);
         else super.onBackPressed();
+    }
 
     void openSettings() {
         startActivity(new android.content.Intent(this, SettingsActivity.class));
@@ -457,5 +458,38 @@ public class MainActivity extends AppCompatActivity {
             ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(rq);
             toast("Downloading: " + name);
         } catch (Exception e) { toast("Download start nahi hua"); }
+    }
+
+    boolean handleInternal(String u) {
+        if (u == null || !u.startsWith("mt://")) return false;
+        String m = u.substring(5);
+        if (m.startsWith("bookmarks")) openLib("bookmarks");
+        else if (m.startsWith("history")) openLib("history");
+        else if (m.startsWith("downloads")) openLib("downloads");
+        else if (m.startsWith("settings")) openSettings();
+        return true;
+    }
+
+    void openLib(String mode) {
+        android.content.Intent i = new android.content.Intent(this, LibraryActivity.class);
+        i.putExtra("mode", mode);
+        startActivityForResult(i, 77);
+    }
+
+    @Override
+    protected void onActivityResult(int rc, int res, android.content.Intent d) {
+        super.onActivityResult(rc, res, d);
+        if (rc == 77 && res == RESULT_OK && d != null && d.getStringExtra("url") != null)
+            cur.wv.loadUrl(d.getStringExtra("url"));
+    }
+
+    void addBookmark() {
+        String u = cur.wv.getUrl();
+        if (u == null || u.startsWith("file:")) {
+            Toast.makeText(this, "Pehle koi website kholo", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Store.addBookmark(this, cur.title, u);
+        Toast.makeText(this, "Bookmark save ho gaya", Toast.LENGTH_SHORT).show();
     }
 }
