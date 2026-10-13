@@ -13,7 +13,7 @@ import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
-    static final String HOME = "https://www.google.com";
+    static final String HOME = "file:///android_asset/home.html";
     WebView web;
     EditText urlBar;
     ProgressBar progress;
@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         s.setMediaPlaybackRequiresUserGesture(false);
 
         web.setWebViewClient(new WebViewClient() {
-            @Override public void onPageStarted(WebView v, String u, Bitmap f) { urlBar.setText(u); }
+            @Override public void onPageStarted(WebView v, String u, Bitmap f) { urlBar.setText(u.startsWith("file:///android_asset") ? "" : u); }
         });
         web.setWebChromeClient(new WebChromeClient() {
             @Override public void onProgressChanged(WebView v, int p) {
