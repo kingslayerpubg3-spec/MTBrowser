@@ -119,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
             r.setTitle(name);
             r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             r.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
-            ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(r);
+            DownloadEngine.start(MainActivity.this, url, name, ua);
             Toast.makeText(this, "Downloading: " + name, Toast.LENGTH_SHORT).show();
         });
 
@@ -458,7 +458,7 @@ public class MainActivity extends AppCompatActivity {
             if (cur.wv.getUrl() != null) rq.addRequestHeader("Referer", cur.wv.getUrl());
             rq.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             rq.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
-            ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(rq);
+            DownloadEngine.start(MainActivity.this, url, name, cur.wv.getSettings().getUserAgentString());
             toast("Downloading: " + name);
         } catch (Exception e) { toast("Download start nahi hua"); }
     }
@@ -474,6 +474,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void openLib(String mode) {
+        if (mode.equals("downloads")) { startActivityForResult(new android.content.Intent(this, DownloadsActivity.class), 77); return; }
         android.content.Intent i = new android.content.Intent(this, LibraryActivity.class);
         i.putExtra("mode", mode);
         startActivityForResult(i, 77);
