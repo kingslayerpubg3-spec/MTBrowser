@@ -92,12 +92,14 @@ public class MainActivity extends AppCompatActivity {
         if (incog) s.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         w.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return handleInternal(r.getUrl().toString()); }
             @Override public void onPageStarted(WebView v, String u, Bitmap f) {
                 if (t == cur) urlBar.setText(u.startsWith("file:///android_asset") ? "" : u);
             }
             @Override public void onPageFinished(WebView v, String u) {
                 String ti = v.getTitle();
                 if (ti != null && !ti.isEmpty()) t.title = ti;
+                if (!t.incog) Store.addHistory(MainActivity.this, t.title, u);
             }
         });
         w.setWebChromeClient(new WebChromeClient() {
@@ -110,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
         w.setDownloadListener((url, ua, cd, mime, len) -> {
             DownloadManager.Request r = new DownloadManager.Request(Uri.parse(url));
             String name = URLUtil.guessFileName(url, cd, mime);
+            r.setTitle(name);
             r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             r.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
             ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(r);
@@ -171,12 +174,20 @@ public class MainActivity extends AppCompatActivity {
         pm.getMenu().add(0, 2, 1, "New incognito tab");
         pm.getMenu().add(0, 3, 2, "Close this tab");
         pm.getMenu().add(0, 4, 3, "Reload");
+        pm.getMenu().add(0, 5, 4, "Add bookmark");
+        pm.getMenu().add(0, 6, 5, "Bookmarks");
+        pm.getMenu().add(0, 7, 6, "History");
+        pm.getMenu().add(0, 8, 7, "Downloads");
         pm.setOnMenuItemClickListener(i -> {
             switch (i.getItemId()) {
                 case 1: newTab(false); break;
                 case 2: newTab(true); break;
                 case 3: closeTab(cur); break;
                 case 4: cur.wv.reload(); break;
+                case 5: addBookmark(); break;
+                case 6: openLib("bookmarks"); break;
+                case 7: openLib("history"); break;
+                case 8: openLib("downloads"); break;
             }
             return true;
         });
@@ -196,4 +207,3 @@ public class MainActivity extends AppCompatActivity {
         else if (tabs.size() > 1) closeTab(cur);
         else super.onBackPressed();
     }
-}
