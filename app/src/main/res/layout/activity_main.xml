@@ -31,11 +31,11 @@
         android:background="#0A1530">
         <ImageButton android:id="@+id/btnBack"
             android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
-            android:padding="16dp" android:src="@drawable/ic_back"
+            android:padding="16dp" android:src="@drawable/ic_nav_back"
             android:background="?attr/selectableItemBackgroundBorderless" />
         <ImageButton android:id="@+id/btnFwd"
             android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
-            android:padding="16dp" android:src="@drawable/ic_fwd"
+            android:padding="16dp" android:src="@drawable/ic_nav_fwd"
             android:background="?attr/selectableItemBackgroundBorderless" />
         <ImageButton android:id="@+id/btnMenu"
             android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"

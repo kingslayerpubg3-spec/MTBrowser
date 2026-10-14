@@ -200,8 +200,8 @@ public class TabSwitcher {
 
         ImageView gh = new ImageView(a);
         gh.setImageResource(R.drawable.ic_ghost);
-        gh.setPadding(dp(a, 6), dp(a, 6), dp(a, 6), dp(a, 6));
-        gh.setAlpha(incogMode ? 1f : 0.45f);
+        gh.setPadding(dp(a, 9), dp(a, 9), dp(a, 9), dp(a, 9));
+        GradientDrawable gb = new GradientDrawable(); gb.setShape(GradientDrawable.OVAL); gb.setColor(incogMode ? 0xFF6C4DE0 : 0x26FFFFFF); gh.setBackground(gb); gh.setColorFilter(0xFFFFFFFF); gh.setAlpha(incogMode ? 1f : 0.7f);
         gh.setOnClickListener(v -> { incogMode = !incogMode; build(a, d); });
 
         ImageView add = new ImageView(a);
@@ -227,7 +227,7 @@ public class TabSwitcher {
             a.cur.wv.loadUrl(e[0]);
         });
 
-        LinearLayout.LayoutParams l1 = new LinearLayout.LayoutParams(dp(a, 52), dp(a, 52));
+        LinearLayout.LayoutParams l1 = new LinearLayout.LayoutParams(dp(a, 44), dp(a, 44));
         l1.setMargins(dp(a, 36), 0, dp(a, 36), 0);
         LinearLayout.LayoutParams l2 = new LinearLayout.LayoutParams(dp(a, 64), dp(a, 64));
         LinearLayout.LayoutParams l3 = new LinearLayout.LayoutParams(dp(a, 52), dp(a, 52));

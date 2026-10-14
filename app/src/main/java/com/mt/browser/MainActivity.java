@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
                 if (t == cur) urlBar.setText(u.startsWith("file:///android_asset") ? "" : u);
             }
             @Override public void onPageFinished(WebView v, String u) {
-                String ti = v.getTitle(); webTheme(v);
+                String ti = v.getTitle(); updateNav(); webTheme(v);
                 if (ti != null && !ti.isEmpty()) t.title = ti;
                 if (!t.incog) Store.addHistory(MainActivity.this, t.title, u);
             }
@@ -286,6 +286,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void applyTheme() {
+        updateNav();
         boolean l = isLight();
         findViewById(R.id.rootLayout).setBackgroundColor(l ? 0xFFF4F6FA : 0xFF050B1E);
         ViewGroup bb = findViewById(R.id.bottomBar);
@@ -495,5 +496,11 @@ public class MainActivity extends AppCompatActivity {
         }
         Store.addBookmark(this, cur.title, u);
         Toast.makeText(this, "Bookmark save ho gaya", Toast.LENGTH_SHORT).show();
+    }
+
+    void updateNav() {
+        if (cur == null) return;
+        findViewById(R.id.btnBack).setAlpha(cur.wv.canGoBack() ? 1f : 0.3f);
+        findViewById(R.id.btnFwd).setAlpha(cur.wv.canGoForward() ? 1f : 0.3f);
     }
 }
