@@ -2,63 +2,113 @@ package com.mt.browser;
 
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.OvershootInterpolator;
 import android.widget.*;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import java.util.ArrayList;
 
 public class MenuSheet {
+    static final ArrayList<View> anim = new ArrayList<>();
+
     static int dp(MainActivity a, int v) { return (int) (v * a.getResources().getDisplayMetrics().density); }
     static LinearLayout.LayoutParams w() { return new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); }
 
+    static GradientDrawable grad(int c1, int c2, boolean oval, float r) {
+        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{c1, c2});
+        if (oval) g.setShape(GradientDrawable.OVAL); else g.setCornerRadius(r);
+        return g;
+    }
+
+    static void press(View v) {
+        v.setOnTouchListener((x, e) -> {
+            int ac = e.getAction();
+            if (ac == MotionEvent.ACTION_DOWN) x.animate().scaleX(0.9f).scaleY(0.9f).setDuration(90).start();
+            else if (ac == MotionEvent.ACTION_UP || ac == MotionEvent.ACTION_CANCEL) x.animate().scaleX(1f).scaleY(1f).setDuration(140).start();
+            return false;
+        });
+    }
+
     static LinearLayout row(MainActivity a) {
         LinearLayout r = new LinearLayout(a);
-        r.setPadding(0, dp(a, 10), 0, 0);
+        r.setPadding(0, dp(a, 14), 0, 0);
         return r;
     }
 
-    static View item(final MainActivity a, final BottomSheetDialog d, int res, String label,
-                     int color, int tx, final Runnable run) {
+    static TextView label(MainActivity a, String t, int tx) {
+        TextView v = new TextView(a);
+        v.setText(t);
+        v.setTextSize(12);
+        v.setTextColor(tx);
+        v.setGravity(Gravity.CENTER);
+        v.setSingleLine(true);
+        v.setEllipsize(TextUtils.TruncateAt.END);
+        v.setPadding(0, dp(a, 8), 0, 0);
+        return v;
+    }
+
+    static View circleItem(final MainActivity a, final BottomSheetDialog d, int res, String lb,
+                           int c1, int c2, int tx, final Runnable run) {
         LinearLayout c = new LinearLayout(a);
         c.setOrientation(LinearLayout.VERTICAL);
         c.setGravity(Gravity.CENTER_HORIZONTAL);
-        c.setPadding(0, dp(a, 6), 0, dp(a, 6));
         ImageView ic = new ImageView(a);
         ic.setImageResource(res);
-        int p = dp(a, color != 0 ? 15 : 12);
+        ic.setColorFilter(Color.WHITE);
+        int p = dp(a, 16);
         ic.setPadding(p, p, p, p);
-        if (color != 0) {
-            GradientDrawable g = new GradientDrawable();
-            g.setShape(GradientDrawable.OVAL);
-            g.setColor(color);
-            ic.setBackground(g);
-            ic.setColorFilter(Color.WHITE);
-        } else {
-            ic.setColorFilter(tx);
-        }
-        c.addView(ic, new LinearLayout.LayoutParams(dp(a, 54), dp(a, 54)));
-        TextView t = new TextView(a);
-        t.setText(label);
-        t.setTextSize(12);
-        t.setTextColor(tx);
-        t.setGravity(Gravity.CENTER);
-        t.setPadding(0, dp(a, 6), 0, 0);
-        t.setMaxLines(2);
-        c.addView(t);
+        ic.setBackground(grad(c1, c2, true, 0));
+        c.addView(ic, new LinearLayout.LayoutParams(dp(a, 56), dp(a, 56)));
+        c.addView(label(a, lb, tx));
         c.setOnClickListener(v -> { d.dismiss(); run.run(); });
+        press(c);
+        anim.add(c);
         return c;
     }
 
-    static ImageView bottomBtn(MainActivity a, int res, int tx, View.OnClickListener cl) {
+    static View tileItem(final MainActivity a, final BottomSheetDialog d, int res, String lb,
+                         int accent, int fill, int stroke, int tx, final Runnable run) {
+        LinearLayout c = new LinearLayout(a);
+        c.setOrientation(LinearLayout.VERTICAL);
+        c.setGravity(Gravity.CENTER_HORIZONTAL);
+        ImageView ic = new ImageView(a);
+        ic.setImageResource(res);
+        ic.setColorFilter(accent);
+        int p = dp(a, 15);
+        ic.setPadding(p, p, p, p);
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(fill);
+        g.setCornerRadius(dp(a, 18));
+        g.setStroke(dp(a, 1), stroke);
+        ic.setBackground(g);
+        c.addView(ic, new LinearLayout.LayoutParams(dp(a, 56), dp(a, 56)));
+        c.addView(label(a, lb, tx));
+        c.setOnClickListener(v -> { d.dismiss(); run.run(); });
+        press(c);
+        anim.add(c);
+        return c;
+    }
+
+    static View roundBtn(MainActivity a, int res, int tint, int bgc, View.OnClickListener cl) {
+        LinearLayout box = new LinearLayout(a);
+        box.setGravity(Gravity.CENTER);
+        box.setPadding(0, dp(a, 12), 0, dp(a, 4));
         ImageView v = new ImageView(a);
         v.setImageResource(res);
-        v.setColorFilter(tx);
-        v.setPadding(dp(a, 10), dp(a, 12), dp(a, 10), dp(a, 8));
-        v.setOnClickListener(cl);
-        return v;
+        v.setColorFilter(tint);
+        int p = dp(a, 11);
+        v.setPadding(p, p, p, p);
+        v.setBackground(grad(bgc, bgc, true, 0));
+        box.addView(v, new LinearLayout.LayoutParams(dp(a, 46), dp(a, 46)));
+        box.setOnClickListener(cl);
+        press(box);
+        return box;
     }
 
     static void tools(final MainActivity a) {
@@ -78,20 +128,29 @@ public class MenuSheet {
     }
 
     static void show(final MainActivity a) {
+        anim.clear();
         final BottomSheetDialog d = new BottomSheetDialog(a);
-        boolean l = a.isLight();
-        int bg = l ? 0xFFF5F6F8 : 0xFF0F1A33;
-        int tx = l ? 0xFF222222 : 0xFFFFFFFF;
-        int sub = l ? 0xFF9AA0AA : 0xFF8FA0C0;
+        final boolean l = a.isLight();
+        int tx = l ? 0xFF2A2F3A : 0xFFE8EDFF;
+        int sub = l ? 0xFF8A93A6 : 0xFF8FA0C0;
+        int fill = l ? 0xFFFFFFFF : 0x14FFFFFF;
+        int stroke = l ? 0xFFE3E7F0 : 0x1FFFFFFF;
 
         LinearLayout root = new LinearLayout(a);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(a, 16), dp(a, 18), dp(a, 16), dp(a, 14));
-        GradientDrawable rb = new GradientDrawable();
-        rb.setColor(bg);
-        float cr = dp(a, 24);
+        root.setPadding(dp(a, 18), dp(a, 10), dp(a, 18), dp(a, 14));
+        GradientDrawable rb = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                l ? new int[]{0xFFFFFFFF, 0xFFEAF0FC} : new int[]{0xFF16244F, 0xFF0A112B});
+        float cr = dp(a, 28);
         rb.setCornerRadii(new float[]{cr, cr, cr, cr, 0, 0, 0, 0});
         root.setBackground(rb);
+
+        View handle = new View(a);
+        handle.setBackground(grad(l ? 0xFFCDD3E0 : 0x44FFFFFF, l ? 0xFFCDD3E0 : 0x44FFFFFF, false, dp(a, 3)));
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(dp(a, 40), dp(a, 4));
+        hp.gravity = Gravity.CENTER_HORIZONTAL;
+        hp.bottomMargin = dp(a, 16);
+        root.addView(handle, hp);
 
         LinearLayout h = new LinearLayout(a);
         h.setGravity(Gravity.CENTER_VERTICAL);
@@ -104,7 +163,7 @@ public class MenuSheet {
         TextView t1 = new TextView(a);
         t1.setText("MT Browser");
         t1.setTextSize(18);
-        t1.setTextColor(tx);
+        t1.setTextColor(l ? 0xFF14213D : Color.WHITE);
         t1.setTypeface(null, android.graphics.Typeface.BOLD);
         TextView t2 = new TextView(a);
         t2.setText("Fast  •  Safe  •  Smart");
@@ -127,43 +186,59 @@ public class MenuSheet {
         pb.setStroke(dp(a, 1), l ? 0xFFCFC6F5 : 0xFF5B4A9E);
         pill.setBackground(pb);
         pill.setOnClickListener(v -> { d.dismiss(); a.newTab(true); });
+        press(pill);
         h.addView(pill);
         root.addView(h);
 
         LinearLayout r1 = row(a);
-        r1.addView(item(a, d, R.drawable.ic_m_bookmark, "Bookmarks", 0xFF14C9A8, tx, () -> a.openLib("bookmarks")), w());
-        r1.addView(item(a, d, R.drawable.ic_m_history, "History", 0xFFFFB300, tx, () -> a.openLib("history")), w());
-        r1.addView(item(a, d, R.drawable.ic_m_download, "Downloads", 0xFF4C8DFF, tx, () -> a.openLib("downloads")), w());
-        r1.addView(item(a, d, R.drawable.ic_m_tools, "Tools", 0xFF8E5CFF, tx, () -> tools(a)), w());
-        r1.addView(item(a, d, R.drawable.ic_m_qr, "QR Scan", 0xFFFF8F3A, tx, () -> a.scanQr()), w());
+        r1.addView(circleItem(a, d, R.drawable.ic_m_bookmark, "Bookmarks", 0xFF21DDB8, 0xFF0E9F86, tx, () -> a.openLib("bookmarks")), w());
+        r1.addView(circleItem(a, d, R.drawable.ic_m_history, "History", 0xFFFFCB45, 0xFFFF9500, tx, () -> a.openLib("history")), w());
+        r1.addView(circleItem(a, d, R.drawable.ic_m_download, "Downloads", 0xFF63A8FF, 0xFF3563F5, tx, () -> a.openLib("downloads")), w());
+        r1.addView(circleItem(a, d, R.drawable.ic_m_tools, "Tools", 0xFFB085FF, 0xFF7545F0, tx, () -> tools(a)), w());
+        r1.addView(circleItem(a, d, R.drawable.ic_m_qr, "QR Scan", 0xFFFFB05A, 0xFFFF6F2C, tx, () -> a.scanQr()), w());
         root.addView(r1);
 
+        View line = new View(a);
+        line.setBackgroundColor(l ? 0xFFDDE2EC : 0x1AFFFFFF);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(a, 1));
+        lp.topMargin = dp(a, 18);
+        root.addView(line, lp);
+
+        boolean night = !l;
         LinearLayout r2 = row(a);
-        r2.addView(item(a, d, R.drawable.ic_m_star, "Add bookmark", 0, tx, () -> a.addBookmark()), w());
-        r2.addView(item(a, d, R.drawable.ic_m_moon, "Night", 0, tx, () -> {
+        r2.addView(tileItem(a, d, R.drawable.ic_m_star, "Bookmark", 0xFFFFC53D, fill, stroke, tx, () -> a.addBookmark()), w());
+        r2.addView(tileItem(a, d, R.drawable.ic_m_moon, "Night", night ? 0xFFCDBDFF : 0xFF8C9DFF,
+                night ? 0x336C4DE0 : fill, night ? 0xFF6C4DE0 : stroke, tx, () -> {
             Prefs.setTheme(a, a.isLight() ? 0 : 1);
             a.applyTheme();
         }), w());
-        r2.addView(item(a, d, R.drawable.ic_m_refresh, "Refresh", 0, tx, () -> a.cur.wv.reload()), w());
-        r2.addView(item(a, d, R.drawable.ic_m_add, "New tab", 0, tx, () -> a.newTab(false)), w());
-        r2.addView(item(a, d, R.drawable.ic_m_share, "Share", 0, tx, () -> a.share()), w());
+        r2.addView(tileItem(a, d, R.drawable.ic_m_refresh, "Refresh", 0xFF3DD6C6, fill, stroke, tx, () -> a.cur.wv.reload()), w());
+        r2.addView(tileItem(a, d, R.drawable.ic_m_add, "New tab", 0xFF63A8FF, fill, stroke, tx, () -> a.newTab(false)), w());
+        r2.addView(tileItem(a, d, R.drawable.ic_m_share, "Share", 0xFFFF86B0, fill, stroke, tx, () -> a.share()), w());
         root.addView(r2);
 
-        View line = new View(a);
-        line.setBackgroundColor(l ? 0xFFDDDFE3 : 0x33FFFFFF);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(a, 1));
-        lp.topMargin = dp(a, 14);
-        root.addView(line, lp);
-
+        int bgc = l ? 0x0F000000 : 0x14FFFFFF;
         LinearLayout bb = new LinearLayout(a);
-        bb.addView(bottomBtn(a, R.drawable.ic_m_settings, tx, v -> { d.dismiss(); a.openSettings(); }), w());
-        bb.addView(bottomBtn(a, R.drawable.ic_m_down, tx, v -> d.dismiss()), w());
-        bb.addView(bottomBtn(a, R.drawable.ic_m_power, tx, v -> { d.dismiss(); a.finishAffinity(); }), w());
+        bb.setPadding(0, dp(a, 10), 0, 0);
+        bb.addView(roundBtn(a, R.drawable.ic_m_settings, tx, bgc, v -> { d.dismiss(); a.openSettings(); }), w());
+        bb.addView(roundBtn(a, R.drawable.ic_m_down, tx, bgc, v -> d.dismiss()), w());
+        bb.addView(roundBtn(a, R.drawable.ic_m_power, 0xFFFF6B6B, bgc, v -> { d.dismiss(); a.finishAffinity(); }), w());
         root.addView(bb);
 
         d.setContentView(root);
         ((View) root.getParent()).setBackgroundColor(Color.TRANSPARENT);
         d.show();
         d.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
+
+        for (int i = 0; i < anim.size(); i++) {
+            View v = anim.get(i);
+            v.setAlpha(0f);
+            v.setScaleX(0.6f);
+            v.setScaleY(0.6f);
+            v.setTranslationY(dp(a, 14));
+            v.animate().alpha(1f).scaleX(1f).scaleY(1f).translationY(0f)
+                .setStartDelay(80 + i * 35L).setDuration(340)
+                .setInterpolator(new OvershootInterpolator(1.3f)).start();
+        }
     }
 }
