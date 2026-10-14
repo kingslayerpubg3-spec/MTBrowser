@@ -237,4 +237,61 @@ public class DownloadEngine {
         in.close();
         os.close();
     }
+
+    static String sniff(byte[] b, int n) {
+        if (n >= 4 && (b[0] & 0xFF) == 0x1A && (b[1] & 0xFF) == 0x45 && (b[2] & 0xFF) == 0xDF && (b[3] & 0xFF) == 0xA3) return "mkv";
+        if (n >= 12 && b[4] == 'f' && b[5] == 't' && b[6] == 'y' && b[7] == 'p') return "mp4";
+        if (n >= 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F' && b[8] == 'A' && b[9] == 'V' && b[10] == 'I') return "avi";
+        if (n >= 4 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F') return "pdf";
+        if (n >= 3 && b[0] == 'I' && b[1] == 'D' && b[2] == '3') return "mp3";
+        if (n >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF) return "jpg";
+        if (n >= 4 && (b[0] & 0xFF) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G') return "png";
+        if (n >= 4 && b[0] == 'O' && b[1] == 'g' && b[2] == 'g' && b[3] == 'S') return "ogg";
+        if (n >= 4 && b[0] == 'P' && b[1] == 'K' && b[2] == 3 && b[3] == 4) return "zip";
+        return null;
+    }
+
+    static boolean needsExt(String name) {
+        int i = name.lastIndexOf('.');
+        if (i < 0) return true;
+        String e = name.substring(i + 1).toLowerCase();
+        return e.equals("bin") || !android.webkit.MimeTypeMap.getSingleton().hasExtension(e);
+    }
+
+    static String withExt(String name, String ext) {
+        if (name.toLowerCase().endsWith(".bin")) name = name.substring(0, name.length() - 4);
+        return name + "." + ext;
+    }
+
+    public static boolean rename(Item it, String nn) {
+        try {
+            nn = clean(nn);
+            if (it.uri.startsWith("file:")) {
+                File old = new File(Uri.parse(it.uri).getPath());
+                File dst = new File(old.getParentFile(), nn);
+                if (!old.renameTo(dst)) return false;
+                it.uri = Uri.fromFile(dst).toString();
+            } else {
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.MediaColumns.DISPLAY_NAME, nn);
+                v.put(MediaStore.MediaColumns.MIME_TYPE, mime(nn));
+                if (app.getContentResolver().update(Uri.parse(it.uri), v, null, null) < 1) return false;
+            }
+            it.name = nn;
+            save();
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    public static boolean fixExt(Item it) {
+        try {
+            InputStream in = app.getContentResolver().openInputStream(Uri.parse(it.uri));
+            byte[] hb = new byte[16];
+            int n = in.read(hb);
+            in.close();
+            String e = sniff(hb, Math.max(n, 0));
+            if (e == null) return false;
+            return rename(it, withExt(it.name, e));
+        } catch (Exception ex) { return false; }
+    }
 }

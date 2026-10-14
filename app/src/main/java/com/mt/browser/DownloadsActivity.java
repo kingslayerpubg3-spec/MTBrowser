@@ -229,6 +229,7 @@ public class DownloadsActivity extends AppCompatActivity {
         if (uiVer != UiTheme.ver(this)) { recreate(); return; }
         getSharedPreferences("mt", 0).edit().putString("screen", "downloads").apply();
         h.post(tick);
+        autoFix();
     }
 
     @Override protected void onPause() { h.removeCallbacks(tick); super.onPause(); }
@@ -385,8 +386,8 @@ public class DownloadsActivity extends AppCompatActivity {
     void options(final Item it) {
         if (it.status == DONE) {
             new AlertDialog.Builder(this).setTitle(it.name)
-                .setItems(new String[]{"Remove from list", "Delete file too"},
-                    (d, i) -> { DownloadEngine.remove(it, i == 1); render(true); }).show();
+                .setItems(new String[]{"Remove from list", "Delete file too", "Rename", "Fix file type (auto)"},
+                    (d, i) -> doOpt(it, i)).show();
         } else {
             new AlertDialog.Builder(this).setTitle(it.name)
                 .setItems(new String[]{"Cancel download"}, (d, i) -> { DownloadEngine.remove(it, false); render(true); }).show();
@@ -445,5 +446,33 @@ public class DownloadsActivity extends AppCompatActivity {
             hd.sub.setText(t);
             hd.right.setText(size(it.done));
         }
+    }
+
+    void doOpt(final Item it, int i) {
+        if (i <= 1) { DownloadEngine.remove(it, i == 1); render(true); return; }
+        if (i == 2) {
+            final EditText e = new EditText(this);
+            e.setText(it.name);
+            new AlertDialog.Builder(this).setTitle("Rename").setView(e)
+                .setPositiveButton("OK", (d, k) -> {
+                    String s = e.getText().toString().trim();
+                    if (!s.isEmpty() && !DownloadEngine.rename(it, s))
+                        Toast.makeText(this, "Rename nahi hua", Toast.LENGTH_SHORT).show();
+                    render(true);
+                }).setNegativeButton("Cancel", null).show();
+        } else {
+            Toast.makeText(this, DownloadEngine.fixExt(it) ? "File type theek ho gaya: " + it.name
+                    : "Type pehchan nahi paya, Rename use karo", Toast.LENGTH_LONG).show();
+            render(true);
+        }
+    }
+
+    void autoFix() {
+        new Thread(() -> {
+            boolean ch = false;
+            for (Item it : DownloadEngine.snapshot())
+                if (it.status == DONE && DownloadEngine.needsExt(it.name) && DownloadEngine.fixExt(it)) ch = true;
+            if (ch) runOnUiThread(() -> render(true));
+        }).start();
     }
 }

@@ -117,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         });
         w.setDownloadListener((url, ua, cd, mime, len) -> {
             DownloadManager.Request r = new DownloadManager.Request(Uri.parse(url));
-            String name = URLUtil.guessFileName(url, cd, mime);
+            String name = URLUtil.guessFileName(url, cd, null);
             r.setTitle(name);
             r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             r.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
