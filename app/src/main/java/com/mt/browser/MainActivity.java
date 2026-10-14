@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnFwd).setOnClickListener(v -> { if (cur.wv.canGoForward()) cur.wv.goForward(); });
         findViewById(R.id.btnHome).setOnClickListener(v -> cur.wv.loadUrl(cur.incog ? INCOG : HOME));
         btnTabs.setOnClickListener(v -> TabSwitcher.show(MainActivity.this));
+        for (int pid : new int[]{R.id.btnBack, R.id.btnFwd, R.id.btnMenu, R.id.btnTabs, R.id.btnHome}) MenuSheet.press(findViewById(pid)); // press
         findViewById(R.id.btnMenu).setOnClickListener(v -> MenuSheet.show(MainActivity.this));
 
         newTab(false);
@@ -134,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
         if (cur != null && cur != t) { cur.wv.setVisibility(View.GONE); cur.wv.onPause(); }
         if (t.wv.getParent() == null) container.addView(t.wv, new ViewGroup.LayoutParams(-1, -1));
         t.wv.setVisibility(View.VISIBLE);
-        t.wv.onResume();
+        t.wv.onResume(); t.wv.setAlpha(0f); t.wv.animate().alpha(1f).setDuration(180).start(); // fade
         cur = t;
         String u = t.wv.getUrl();
         urlBar.setText(u == null || u.startsWith("file:///android_asset") ? "" : u);
@@ -292,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
         boolean l = isLight();
         findViewById(R.id.rootLayout).setBackgroundColor(l ? 0xFFF4F6FA : 0xFF050B1E);
         ViewGroup bb = findViewById(R.id.bottomBar);
-        bb.setBackgroundColor(l ? 0xFFE3E8F2 : 0xFF0A1530);
+        { android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable(); g.setColor(l ? 0xFFE3E8F2 : 0xFF0A1530); float rr = 20 * getResources().getDisplayMetrics().density; g.setCornerRadii(new float[]{rr, rr, rr, rr, 0, 0, 0, 0}); bb.setBackground(g); bb.setElevation(8 * getResources().getDisplayMetrics().density); }
         for (int k = 0; k < bb.getChildCount(); k++) { View c2 = bb.getChildAt(k); if (c2 instanceof ImageButton) ((ImageButton) c2).setColorFilter(l ? 0xFF1B2540 : 0xFFFFFFFF); }
         for (int i = 0; i < bb.getChildCount(); i++) {
             View c = bb.getChildAt(i);

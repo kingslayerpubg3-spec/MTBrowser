@@ -172,7 +172,7 @@ public class MenuSheet {
         tb.addView(t1);
         tb.addView(t2);
         h.addView(tb, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        ImageView pill = new ImageView(a); pill.setImageResource(R.drawable.ic_ghost_s); pill.setColorFilter(0xFFFFFFFF); pill.setPadding(dp(a, 15), dp(a, 15), dp(a, 15), dp(a, 15)); pill.setBackground(grad(0xFF8E6CFF, 0xFF5B3FD0, true, 0)); pill.setOnClickListener(v -> { d.dismiss(); a.newTab(true); }); press(pill); h.addView(pill, new LinearLayout.LayoutParams(dp(a, 52), dp(a, 52)));
+        ImageView pill = new ImageView(a); pill.setImageResource(R.drawable.ic_ghost_s); pill.setColorFilter(0xFFFFFFFF); pill.setPadding(dp(a, 8), dp(a, 8), dp(a, 8), dp(a, 8)); pill.setBackground(grad(0xFF8E6CFF, 0xFF5B3FD0, true, 0)); pill.setOnClickListener(v -> { d.dismiss(); a.newTab(true); }); press(pill); h.addView(pill, new LinearLayout.LayoutParams(dp(a, 34), dp(a, 34)));
         root.addView(h);
 
         LinearLayout r1 = row(a);

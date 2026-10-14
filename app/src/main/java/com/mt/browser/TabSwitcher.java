@@ -227,7 +227,7 @@ public class TabSwitcher {
             a.cur.wv.loadUrl(e[0]);
         });
 
-        LinearLayout.LayoutParams l1 = new LinearLayout.LayoutParams(dp(a, 44), dp(a, 44));
+        LinearLayout.LayoutParams l1 = new LinearLayout.LayoutParams(dp(a, 38), dp(a, 38));
         l1.setMargins(dp(a, 36), 0, dp(a, 36), 0);
         LinearLayout.LayoutParams l2 = new LinearLayout.LayoutParams(dp(a, 64), dp(a, 64));
         LinearLayout.LayoutParams l3 = new LinearLayout.LayoutParams(dp(a, 52), dp(a, 52));

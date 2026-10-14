@@ -3,5 +3,12 @@
         <item name="android:statusBarColor">#050B1E</item>
         <item name="android:navigationBarColor">#050B1E</item>
         <item name="android:windowBackground">#050B1E</item>
+        <item name="android:windowAnimationStyle">@style/MTAnim</item>
+    </style>
+    <style name="MTAnim" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/mt_in</item>
+        <item name="android:activityOpenExitAnimation">@anim/mt_out</item>
+        <item name="android:activityCloseEnterAnimation">@anim/mt_back_in</item>
+        <item name="android:activityCloseExitAnimation">@anim/mt_back_out</item>
     </style>
 </resources>
