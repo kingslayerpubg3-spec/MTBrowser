@@ -35,6 +35,7 @@ public class DownloadsActivity extends AppCompatActivity {
     int filter = 0;
     String sig = "";
     LinearLayout list;
+    ScrollView sv;
     TextView tvSpeed, tvTask, tvTotal;
     EditText search;
     final Runnable tick = new Runnable() { public void run() { render(false); h.postDelayed(this, 1000); } };
@@ -89,6 +90,7 @@ public class DownloadsActivity extends AppCompatActivity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         DownloadEngine.init(this);
+        filter = getSharedPreferences("mt", 0).getInt("dl_filter", 0);
         getWindow().setStatusBarColor(0xFF0F1A4A);
         getWindow().setNavigationBarColor(0xFF0F1535);
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED)
@@ -98,17 +100,21 @@ public class DownloadsActivity extends AppCompatActivity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xFF0F1A4A, 0xFF150F36}));
 
-        ScrollView sv = new ScrollView(this);
+        sv = new ScrollView(this);
         sv.setFillViewport(true);
+        sv.setVerticalScrollBarEnabled(false);
+        sv.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        sv.setVerticalScrollBarEnabled(false);
+        sv.setOverScrollMode(View.OVER_SCROLL_NEVER);
         LinearLayout c = new LinearLayout(this);
         c.setOrientation(LinearLayout.VERTICAL);
         c.setPadding(dp(18), dp(22), dp(18), dp(24));
         sv.addView(c);
         root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        c.addView(tv("Downloads", 34, Color.WHITE, true));
+        LinearLayout hr = new LinearLayout(this); hr.setGravity(Gravity.CENTER_VERTICAL); ImageView bk = new ImageView(this); bk.setImageResource(R.drawable.ic_back); bk.setPadding(dp(10), dp(10), dp(10), dp(10)); bk.setOnClickListener(v -> finish()); hr.addView(bk, new LinearLayout.LayoutParams(dp(46), dp(46))); hr.addView(tv("Downloads", 30, Color.WHITE, true), lp(-2, -2, 4, 0, 0, 0)); c.addView(hr);
         tvTotal = tv("0 total", 15, 0xFF9AA9CC, false);
-        c.addView(tvTotal, lp(-2, -2, 2, 2, 0, 14));
+        c.addView(tvTotal, lp(-2, -2, 54, 0, 0, 14));
 
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
@@ -118,10 +124,12 @@ public class DownloadsActivity extends AppCompatActivity {
         cg.setCornerRadius(dp(34));
         card.setBackground(cg);
         tvSpeed = tv("0 KB/s", 44, Color.WHITE, true);
+        tvSpeed.setGravity(Gravity.CENTER);
+        tvSpeed.setGravity(Gravity.CENTER);
         tvTask = tv("0 Tasks", 15, Color.WHITE, false);
         tvTask.setBackground(bg(0x33FFFFFF, 0, 22));
         tvTask.setPadding(dp(20), dp(7), dp(20), dp(7));
-        card.addView(tvSpeed);
+        card.addView(tvSpeed, new LinearLayout.LayoutParams(-1, -2));
         card.addView(tvTask, lp(-2, -2, 0, 8, 0, 0));
         c.addView(card, lp(-1, -2, 0, 0, 0, 16));
 
@@ -166,7 +174,6 @@ public class DownloadsActivity extends AppCompatActivity {
         clr.setOnClickListener(v -> { DownloadEngine.clearFinished(); render(true); });
         c.addView(clr, lp(-1, -2, 0, 4, 0, 0));
 
-        root.addView(nav(), new LinearLayout.LayoutParams(-1, -2));
         setContentView(root);
         render(true);
     }
@@ -226,8 +233,8 @@ public class DownloadsActivity extends AppCompatActivity {
         if (rc == 1 && res == RESULT_OK && d != null) { setResult(RESULT_OK, d); finish(); }
     }
 
-    @Override protected void onResume() { super.onResume(); h.post(tick); }
-    @Override protected void onPause() { h.removeCallbacks(tick); super.onPause(); }
+    @Override protected void onResume() { super.onResume(); getSharedPreferences("mt", 0).edit().putString("screen", "downloads").apply(); h.post(tick); }
+    @Override protected void onPause() { h.removeCallbacks(tick); getSharedPreferences("mt", 0).edit().putInt("dl_filter", filter).apply(); super.onPause(); }
 
     void render(boolean force) {
         ArrayList<DownloadEngine.Item> all = DownloadEngine.snapshot();
@@ -253,6 +260,8 @@ public class DownloadsActivity extends AppCompatActivity {
     }
 
     void rebuild(ArrayList<DownloadEngine.Item> vis) {
+        final int sy = sv.getScrollY();
+        sv.post(() -> sv.scrollTo(0, sy));
         list.removeAllViews();
         holders.clear();
         if (vis.isEmpty()) {
@@ -364,7 +373,7 @@ public class DownloadsActivity extends AppCompatActivity {
         if (hd == null) return;
         int s = it.status;
         if (hd.bar != null) {
-            if (it.total > 0) { hd.bar.setIndeterminate(false); hd.bar.setProgress((int) (it.done * 1000 / it.total)); }
+            if (it.total > 0) { hd.bar.setIndeterminate(false); animTo(hd.bar, (int) (it.done * 1000 / it.total)); }
             else hd.bar.setIndeterminate(s == ACTIVE);
         }
         String t;
@@ -382,5 +391,18 @@ public class DownloadsActivity extends AppCompatActivity {
             t = "Completed • " + size(it.total);
         }
         hd.sub.setText(t);
+    }
+
+    void animTo(ProgressBar b, int v) {
+        android.animation.ObjectAnimator a = android.animation.ObjectAnimator.ofInt(b, "progress", b.getProgress(), v);
+        a.setDuration(900);
+        a.setInterpolator(new android.view.animation.LinearInterpolator());
+        a.start();
+    }
+
+    @Override
+    public void finish() {
+        getSharedPreferences("mt", 0).edit().putString("screen", "browser").apply();
+        super.finish();
     }
 }

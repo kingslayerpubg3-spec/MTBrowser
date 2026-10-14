@@ -12,7 +12,7 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(b);
         setContentView(R.layout.activity_splash);
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            startActivity(new Intent(this, MainActivity.class));
+            Intent[] st = "downloads".equals(getSharedPreferences("mt", 0).getString("screen", "")) ? new Intent[]{new Intent(this, MainActivity.class), new Intent(this, DownloadsActivity.class)} : new Intent[]{new Intent(this, MainActivity.class)}; startActivities(st);
             finish();
         }, 700);
     }
