@@ -297,7 +297,7 @@ public class MainActivity extends AppCompatActivity {
         boolean l = isLight();
         findViewById(R.id.rootLayout).setBackgroundColor(l ? 0xFFF4F6FA : 0xFF050B1E);
         ViewGroup bb = findViewById(R.id.bottomBar);
-        { android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable(); g.setColor(l ? 0xFFE3E8F2 : 0xFF0A1530); float rr = 20 * getResources().getDisplayMetrics().density; g.setCornerRadii(new float[]{rr, rr, rr, rr, 0, 0, 0, 0}); bb.setBackground(g); bb.setElevation(8 * getResources().getDisplayMetrics().density); }
+        { android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable(); g.setColor(l ? 0xFFE3E8F2 : 0xFF0A1530); float rr = 20 * getResources().getDisplayMetrics().density; g.setCornerRadii(new float[]{rr, rr, rr, rr, 0, 0, 0, 0}); bb.setBackground(g); bb.setElevation(8 * getResources().getDisplayMetrics().density); } { int fg = l ? 0xFF1B2540 : 0xFFFFFFFF; btnTabs.setBackgroundTintList(android.content.res.ColorStateList.valueOf(fg)); btnTabs.setTextColor(fg); } // tabtint
         for (int k = 0; k < bb.getChildCount(); k++) { View c2 = bb.getChildAt(k); if (c2 instanceof ImageButton) ((ImageButton) c2).setColorFilter(l ? 0xFF1B2540 : 0xFFFFFFFF); }
         for (int i = 0; i < bb.getChildCount(); i++) {
             View c = bb.getChildAt(i);

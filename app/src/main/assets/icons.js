@@ -19,6 +19,7 @@ var S=[
 ["Reddit","https://www.reddit.com",T('#FF4500','<ellipse cx="24" cy="28" rx="12" ry="8.5" fill="#fff"/><circle cx="11.5" cy="25" r="2.6" fill="#fff"/><circle cx="36.5" cy="25" r="2.6" fill="#fff"/><circle cx="19.5" cy="27" r="2.2" fill="#FF4500"/><circle cx="28.5" cy="27" r="2.2" fill="#FF4500"/><path d="M19.5,32 q4.5,3 9,0" fill="none" stroke="#FF4500" stroke-width="1.8" stroke-linecap="round"/><path d="M24,19.5 L26,12 L31,13.5" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="32" cy="13.5" r="2.4" fill="#fff"/>')]
 ];
 var h='';
+S.forEach(function(s){h+='<a href="'+s[1]+'"><div class="ic">'+s[2]+'</div>'+s[0]+'</a>';});
 document.getElementById('g').innerHTML=h;
 function Q(p){return '<svg viewBox="0 0 24 24" width="22" height="22" fill="#2E8BFF">'+p+'</svg>';}
 var QI=[
