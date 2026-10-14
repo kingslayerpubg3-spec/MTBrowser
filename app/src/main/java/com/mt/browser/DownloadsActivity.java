@@ -33,6 +33,7 @@ public class DownloadsActivity extends AppCompatActivity {
     final ArrayList<TextView> chips = new ArrayList<>();
     final String[] FN = {"All", "Active", "Done", "Failed"};
     int filter = 0;
+    int uiVer = -1;
     String sig = "";
     LinearLayout list;
     ScrollView sv;
@@ -90,15 +91,15 @@ public class DownloadsActivity extends AppCompatActivity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         DownloadEngine.init(this);
+        uiVer = UiTheme.ver(this);
         filter = getSharedPreferences("mt", 0).getInt("dl_filter", 0);
-        getWindow().setStatusBarColor(0xFF0F1A4A);
-        getWindow().setNavigationBarColor(0xFF0F1535);
+        UiTheme.apply(DownloadsActivity.this);
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED)
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 5);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xFF0F1A4A, 0xFF150F36}));
+        root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{UiTheme.bg1(DownloadsActivity.this), UiTheme.bg2(DownloadsActivity.this)}));
 
         sv = new ScrollView(this);
         sv.setFillViewport(true);
@@ -112,15 +113,15 @@ public class DownloadsActivity extends AppCompatActivity {
         sv.addView(c);
         root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        LinearLayout hr = new LinearLayout(this); hr.setGravity(Gravity.CENTER_VERTICAL); ImageView bk = new ImageView(this); bk.setImageResource(R.drawable.ic_back); bk.setPadding(dp(10), dp(10), dp(10), dp(10)); bk.setOnClickListener(v -> finish()); hr.addView(bk, new LinearLayout.LayoutParams(dp(46), dp(46))); hr.addView(tv("Downloads", 30, Color.WHITE, true), lp(-2, -2, 4, 0, 0, 0)); c.addView(hr);
-        tvTotal = tv("0 total", 15, 0xFF9AA9CC, false);
+        LinearLayout hr = new LinearLayout(this); hr.setGravity(Gravity.CENTER_VERTICAL); ImageView bk = new ImageView(this); bk.setImageResource(R.drawable.ic_back); bk.setColorFilter(UiTheme.tx(DownloadsActivity.this)); bk.setPadding(dp(10), dp(10), dp(10), dp(10)); bk.setOnClickListener(v -> finish()); hr.addView(bk, new LinearLayout.LayoutParams(dp(46), dp(46))); hr.addView(tv("Downloads", 30, UiTheme.tx(DownloadsActivity.this), true), lp(-2, -2, 4, 0, 0, 0)); { View spc = new View(this); hr.addView(spc, new LinearLayout.LayoutParams(0, 1, 1f)); ImageView pl = new ImageView(this); pl.setImageResource(R.drawable.ic_m_palette); pl.setColorFilter(UiTheme.tx(DownloadsActivity.this)); pl.setPadding(dp(10), dp(10), dp(10), dp(10)); pl.setOnClickListener(v -> ThemePicker.dialog(DownloadsActivity.this)); hr.addView(pl, new LinearLayout.LayoutParams(dp(46), dp(46))); } c.addView(hr);
+        tvTotal = tv("0 total", 15, UiTheme.sub(DownloadsActivity.this), false);
         c.addView(tvTotal, lp(-2, -2, 54, 0, 0, 14));
 
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER_HORIZONTAL);
         card.setPadding(dp(16), dp(22), dp(16), dp(22));
-        GradientDrawable cg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xFF3B82F6, 0xFF2563EB});
+        GradientDrawable cg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{UiTheme.acc(DownloadsActivity.this), UiTheme.acc2(DownloadsActivity.this)});
         cg.setCornerRadius(dp(34));
         card.setBackground(cg);
         tvSpeed = tv("0 KB/s", 44, Color.WHITE, true);
@@ -135,11 +136,11 @@ public class DownloadsActivity extends AppCompatActivity {
 
         search = new EditText(this);
         search.setHint("Search downloads...");
-        search.setHintTextColor(0xFF7C8AB0);
-        search.setTextColor(Color.WHITE);
+        search.setHintTextColor(UiTheme.sub(DownloadsActivity.this));
+        search.setTextColor(UiTheme.tx(DownloadsActivity.this));
         search.setTextSize(16);
         search.setSingleLine(true);
-        search.setBackground(bg(0xFF0F1730, 0xFF232F55, 28));
+        search.setBackground(bg(UiTheme.card(DownloadsActivity.this), UiTheme.stroke(DownloadsActivity.this), 28));
         search.setPadding(dp(22), 0, dp(22), 0);
         search.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int a, int b2, int c2) { }
@@ -167,9 +168,9 @@ public class DownloadsActivity extends AppCompatActivity {
         list.setOrientation(LinearLayout.VERTICAL);
         c.addView(list, lp(-1, -2, 0, 0, 0, 0));
 
-        TextView clr = tv("Clear finished", 17, Color.WHITE, true);
+        TextView clr = tv("Clear finished", 17, UiTheme.tx(DownloadsActivity.this), true);
         clr.setGravity(Gravity.CENTER);
-        clr.setBackground(bg(0xFF1B2547, 0xFF232F55, 28));
+        clr.setBackground(bg(UiTheme.chip(DownloadsActivity.this), UiTheme.stroke(DownloadsActivity.this), 28));
         clr.setPadding(0, dp(18), 0, dp(18));
         clr.setOnClickListener(v -> { DownloadEngine.clearFinished(); render(true); });
         c.addView(clr, lp(-1, -2, 0, 4, 0, 0));
@@ -182,8 +183,8 @@ public class DownloadsActivity extends AppCompatActivity {
         for (int i = 0; i < chips.size(); i++) {
             TextView t = chips.get(i);
             boolean on = i == filter;
-            t.setTextColor(on ? Color.WHITE : 0xFFC5D3FF);
-            t.setBackground(bg(on ? 0xFF3B82F6 : 0xFF1B2547, 0, 24));
+            t.setTextColor(on ? Color.WHITE : UiTheme.sub(DownloadsActivity.this));
+            t.setBackground(bg(on ? UiTheme.acc(DownloadsActivity.this) : UiTheme.chip(DownloadsActivity.this), 0, 24));
         }
     }
 
@@ -200,13 +201,13 @@ public class DownloadsActivity extends AppCompatActivity {
             cell.setOrientation(LinearLayout.VERTICAL);
             cell.setGravity(Gravity.CENTER);
             FrameLayout pill = new FrameLayout(this);
-            if (on) pill.setBackground(bg(0xFF3B82F6, 0, 18));
+            if (on) pill.setBackground(bg(UiTheme.acc(DownloadsActivity.this), 0, 18));
             ImageView iv = new ImageView(this);
             iv.setImageResource(ic[i]);
-            iv.setColorFilter(on ? Color.WHITE : 0xFF9AA9CC);
+            iv.setColorFilter(on ? Color.WHITE : UiTheme.sub(DownloadsActivity.this));
             pill.addView(iv, new FrameLayout.LayoutParams(dp(26), dp(26), Gravity.CENTER));
             cell.addView(pill, new LinearLayout.LayoutParams(dp(66), dp(36)));
-            cell.addView(tv(lb[i], 12, on ? 0xFF4C8DFF : 0xFF9AA9CC, false), lp(-2, -2, 0, 3, 0, 0));
+            cell.addView(tv(lb[i], 12, on ? 0xFF4C8DFF : UiTheme.sub(DownloadsActivity.this), false), lp(-2, -2, 0, 3, 0, 0));
             cell.setOnClickListener(v -> go(k));
             n.addView(cell, new LinearLayout.LayoutParams(0, -2, 1f));
         }
@@ -233,7 +234,7 @@ public class DownloadsActivity extends AppCompatActivity {
         if (rc == 1 && res == RESULT_OK && d != null) { setResult(RESULT_OK, d); finish(); }
     }
 
-    @Override protected void onResume() { super.onResume(); getSharedPreferences("mt", 0).edit().putString("screen", "downloads").apply(); h.post(tick); }
+    @Override protected void onResume() { super.onResume(); if (uiVer != UiTheme.ver(DownloadsActivity.this)) { recreate(); return; } getSharedPreferences("mt", 0).edit().putString("screen", "downloads").apply(); h.post(tick); }
     @Override protected void onPause() { h.removeCallbacks(tick); getSharedPreferences("mt", 0).edit().putInt("dl_filter", filter).apply(); super.onPause(); }
 
     void render(boolean force) {
@@ -265,7 +266,7 @@ public class DownloadsActivity extends AppCompatActivity {
         list.removeAllViews();
         holders.clear();
         if (vis.isEmpty()) {
-            TextView e = tv("Koi download nahi hai", 16, 0xFF7C8AB0, false);
+            TextView e = tv("Koi download nahi hai", 16, UiTheme.sub(DownloadsActivity.this), false);
             e.setGravity(Gravity.CENTER);
             e.setPadding(0, dp(30), 0, dp(30));
             list.addView(e);
@@ -277,7 +278,7 @@ public class DownloadsActivity extends AppCompatActivity {
     TextView btn(String t, int color, View.OnClickListener cl) {
         TextView b = tv(t, 14, color, true);
         b.setGravity(Gravity.CENTER);
-        b.setBackground(bg(0xFF111A3A, 0xFF2B3A6E, 20));
+        b.setBackground(bg(UiTheme.chip(DownloadsActivity.this), UiTheme.stroke(DownloadsActivity.this), 20));
         b.setOnClickListener(cl);
         return b;
     }
@@ -294,10 +295,10 @@ public class DownloadsActivity extends AppCompatActivity {
         Holder hd = new Holder();
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setBackground(bg(0xFF151D3E, 0xFF232F55, 28));
+        row.setBackground(bg(UiTheme.card(DownloadsActivity.this), UiTheme.stroke(DownloadsActivity.this), 28));
         row.setPadding(dp(16), dp(16), dp(14), dp(16));
         int s = it.status;
-        int col = s == DONE ? 0xFF22C55E : s == FAILED ? 0xFFEF4444 : s == PAUSED ? 0xFFF59E0B : 0xFF3B82F6;
+        int col = s == DONE ? 0xFF22C55E : s == FAILED ? 0xFFEF4444 : s == PAUSED ? 0xFFF59E0B : UiTheme.acc(DownloadsActivity.this);
         ImageView icon = new ImageView(this);
         icon.setImageResource(iconFor(it.name));
         icon.setColorFilter(Color.WHITE);
@@ -307,17 +308,19 @@ public class DownloadsActivity extends AppCompatActivity {
 
         LinearLayout mid = new LinearLayout(this);
         mid.setOrientation(LinearLayout.VERTICAL);
-        TextView title = tv(it.name, 16, Color.WHITE, true);
+        TextView title = tv(it.name, 16, UiTheme.tx(DownloadsActivity.this), true);
         title.setMaxLines(3);
         title.setEllipsize(TextUtils.TruncateAt.END);
         mid.addView(title);
         if (s != DONE) {
             hd.bar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
             hd.bar.setProgressDrawable(ContextCompat.getDrawable(this, R.drawable.dl_progress));
+            hd.bar.setProgressTintList(android.content.res.ColorStateList.valueOf(UiTheme.acc(DownloadsActivity.this)));
+            hd.bar.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(UiTheme.stroke(DownloadsActivity.this)));
             hd.bar.setMax(1000);
             mid.addView(hd.bar, lp(-1, dp(6), 0, 10, 0, 0));
         }
-        hd.sub = tv("", 13, 0xFF9AA9CC, false);
+        hd.sub = tv("", 13, UiTheme.sub(DownloadsActivity.this), false);
         mid.addView(hd.sub, lp(-2, -2, 0, 8, 0, 0));
         LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(0, -2, 1f);
         mp.setMargins(dp(14), 0, dp(10), 0);
@@ -327,7 +330,7 @@ public class DownloadsActivity extends AppCompatActivity {
         btns.setOrientation(LinearLayout.VERTICAL);
         String a1 = s == ACTIVE ? "Pause" : s == PAUSED ? "Resume" : s == FAILED ? "Retry" : "Open";
         String a2 = (s == DONE || s == FAILED) ? "Delete" : "Cancel";
-        btns.addView(btn(a1, 0xFF6C8CFF, v -> primary(it)), lp(dp(92), dp(40), 0, 0, 0, 8));
+        btns.addView(btn(a1, UiTheme.acc(DownloadsActivity.this), v -> primary(it)), lp(dp(92), dp(40), 0, 0, 0, 8));
         btns.addView(btn(a2, 0xFFFF6B6B, v -> secondary(it)), lp(dp(92), dp(40), 0, 0, 0, 0));
         row.addView(btns);
         if (s == DONE) row.setOnClickListener(v -> open(it));

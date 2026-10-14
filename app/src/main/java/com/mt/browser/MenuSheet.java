@@ -172,29 +172,14 @@ public class MenuSheet {
         tb.addView(t1);
         tb.addView(t2);
         h.addView(tb, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        TextView pill = new TextView(a);
-        pill.setText("Incognito");
-        pill.setTextSize(12);
-        pill.setTextColor(l ? 0xFF5B3FD0 : 0xFFC9B3FF);
-        pill.setGravity(Gravity.CENTER_VERTICAL);
-        pill.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_ghost_s, 0, 0, 0);
-        pill.setCompoundDrawablePadding(dp(a, 6));
-        pill.setPadding(dp(a, 10), dp(a, 6), dp(a, 12), dp(a, 6));
-        GradientDrawable pb = new GradientDrawable();
-        pb.setColor(l ? 0xFFEDEBF8 : 0xFF2A1646);
-        pb.setCornerRadius(dp(a, 20));
-        pb.setStroke(dp(a, 1), l ? 0xFFCFC6F5 : 0xFF5B4A9E);
-        pill.setBackground(pb);
-        pill.setOnClickListener(v -> { d.dismiss(); a.newTab(true); });
-        press(pill);
-        h.addView(pill);
+        ImageView pill = new ImageView(a); pill.setImageResource(R.drawable.ic_ghost_s); pill.setColorFilter(0xFFFFFFFF); pill.setPadding(dp(a, 15), dp(a, 15), dp(a, 15), dp(a, 15)); pill.setBackground(grad(0xFF8E6CFF, 0xFF5B3FD0, true, 0)); pill.setOnClickListener(v -> { d.dismiss(); a.newTab(true); }); press(pill); h.addView(pill, new LinearLayout.LayoutParams(dp(a, 52), dp(a, 52)));
         root.addView(h);
 
         LinearLayout r1 = row(a);
         r1.addView(circleItem(a, d, R.drawable.ic_m_bookmark, "Bookmarks", 0xFF21DDB8, 0xFF0E9F86, tx, () -> a.openLib("bookmarks")), w());
         r1.addView(circleItem(a, d, R.drawable.ic_m_history, "History", 0xFFFFCB45, 0xFFFF9500, tx, () -> a.openLib("history")), w());
         r1.addView(circleItem(a, d, R.drawable.ic_m_download, "Downloads", 0xFF63A8FF, 0xFF3563F5, tx, () -> a.openLib("downloads")), w());
-        r1.addView(circleItem(a, d, R.drawable.ic_m_tools, "Tools", 0xFFB085FF, 0xFF7545F0, tx, () -> tools(a)), w());
+        r1.addView(circleItem(a, d, R.drawable.ic_m_tools, "Tools", 0xFFB085FF, 0xFF7545F0, tx, () -> ToolsSheet.show(a)), w());
         r1.addView(circleItem(a, d, R.drawable.ic_m_qr, "QR Scan", 0xFFFFB05A, 0xFFFF6F2C, tx, () -> a.scanQr()), w());
         root.addView(r1);
 
