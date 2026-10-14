@@ -146,6 +146,6 @@ public class SettingsActivity extends AppCompatActivity {
                     Toast.makeText(this, "Data clear ho gaya", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Cancel", null).show());
-        row(g3, R.drawable.ic_m_info, 0xFF8E5CFF, "About MT Browser", "Version 1.0 • Fast, Safe, Smart", null, null);
+        row(g3, R.drawable.ic_m_info, 0xFF8E5CFF, "About MT Browser", "Version 8.0 • Fast, Safe, Smart", null, null);
     }
 }

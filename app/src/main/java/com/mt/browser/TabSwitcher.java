@@ -29,9 +29,9 @@ public class TabSwitcher {
             if (t == null || t.wv == null || !a.tabs.contains(t)) return;
             int w = t.wv.getWidth(), h = t.wv.getHeight();
             if (w <= 0 || h <= 0) return;
-            Bitmap b = Bitmap.createBitmap(w / 2, h / 2, Bitmap.Config.RGB_565);
+            Bitmap b = Bitmap.createBitmap(w / 3, h / 3, Bitmap.Config.RGB_565);
             Canvas c = new Canvas(b);
-            c.scale(0.5f, 0.5f);
+            c.scale(0.3333f, 0.3333f);
             t.wv.draw(c);
             t.thumb = b;
         } catch (Throwable e) { }

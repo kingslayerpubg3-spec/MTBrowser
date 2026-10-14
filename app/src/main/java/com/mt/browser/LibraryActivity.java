@@ -54,7 +54,7 @@ public class LibraryActivity extends AppCompatActivity {
         super.onCreate(b);
         mode = getIntent().getStringExtra("mode");
         if (mode == null) mode = "bookmarks";
-        key = mode.equals("history") ? "hist" : "bm";
+        key = mode.equals("history") ? "hist" : mode.equals("watch") ? "wl" : "bm";
         uiVer = UiTheme.ver(this);
         UiTheme.apply(this);
         int tx = UiTheme.tx(this), sub = UiTheme.sub(this), acc = UiTheme.acc(this);
@@ -75,7 +75,7 @@ public class LibraryActivity extends AppCompatActivity {
         hr.addView(bk, new LinearLayout.LayoutParams(dp(48), dp(48)));
         LinearLayout tc = new LinearLayout(this);
         tc.setOrientation(LinearLayout.VERTICAL);
-        tc.addView(tv(mode.equals("history") ? "History" : "Bookmarks", 26, tx, true));
+        tc.addView(tv(mode.equals("history") ? "History" : mode.equals("watch") ? "Watch Later" : "Bookmarks", 26, tx, true));
         count = tv("", 13, sub, false);
         tc.addView(count);
         hr.addView(tc, lp(0, -2, 4, 0, 0, 0));
@@ -196,7 +196,7 @@ public class LibraryActivity extends AppCompatActivity {
         e.setGravity(Gravity.CENTER_HORIZONTAL);
         e.setPadding(0, dp(60), 0, 0);
         ImageView ic = new ImageView(this);
-        ic.setImageResource(mode.equals("history") ? R.drawable.ic_m_history : R.drawable.ic_m_bookmark);
+        ic.setImageResource(mode.equals("history") ? R.drawable.ic_m_history : mode.equals("watch") ? R.drawable.ic_m_star : R.drawable.ic_m_bookmark);
         ic.setColorFilter(Color.WHITE);
         ic.setPadding(dp(22), dp(22), dp(22), dp(22));
         GradientDrawable g = new GradientDrawable();
@@ -204,7 +204,7 @@ public class LibraryActivity extends AppCompatActivity {
         g.setColor(UiTheme.acc(this));
         ic.setBackground(g);
         e.addView(ic, new LinearLayout.LayoutParams(dp(84), dp(84)));
-        e.addView(tv(mode.equals("history") ? "Abhi koi history nahi" : "Abhi koi bookmark nahi", 16, UiTheme.sub(this), false), lp(-2, -2, 0, 16, 0, 0));
+        e.addView(tv(mode.equals("history") ? "Abhi koi history nahi" : mode.equals("watch") ? "Watch Later khali hai" : "Abhi koi bookmark nahi", 16, UiTheme.sub(this), false), lp(-2, -2, 0, 16, 0, 0));
         return e;
     }
 

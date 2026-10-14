@@ -101,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onPageFinished(WebView v, String u) {
                 String ti = v.getTitle(); updateNav(); webTheme(v);
                 if (ti != null && !ti.isEmpty()) t.title = ti;
+                v.postDelayed(() -> TabSwitcher.capture(MainActivity.this, t), 900);
                 if (!t.incog) Store.addHistory(MainActivity.this, t.title, u);
             }
         });
@@ -119,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
             r.setTitle(name);
             r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             r.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
-            DownloadEngine.start(MainActivity.this, url, name, ua);
+            FastDownload.show(MainActivity.this, url, name, ua); if (true) return;
             Toast.makeText(this, "Downloading: " + name, Toast.LENGTH_SHORT).show();
         });
 
@@ -130,10 +131,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void switchTo(Tab t) {
-        TabSwitcher.capture(this, cur);
-        container.removeAllViews();
-        container.addView(t.wv, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        if (cur != null && cur != t) { cur.wv.setVisibility(View.GONE); cur.wv.onPause(); }
+        if (t.wv.getParent() == null) container.addView(t.wv, new ViewGroup.LayoutParams(-1, -1));
+        t.wv.setVisibility(View.VISIBLE);
+        t.wv.onResume();
         cur = t;
         String u = t.wv.getUrl();
         urlBar.setText(u == null || u.startsWith("file:///android_asset") ? "" : u);
@@ -146,7 +147,8 @@ public class MainActivity extends AppCompatActivity {
     void closeTab(Tab t) {
         int idx = tabs.indexOf(t);
         tabs.remove(t);
-        container.removeAllViews();
+        if (cur == t) cur = null;
+        container.removeView(t.wv);
         t.wv.destroy();
 
         boolean anyIncog = false;
@@ -459,7 +461,7 @@ public class MainActivity extends AppCompatActivity {
             if (cur.wv.getUrl() != null) rq.addRequestHeader("Referer", cur.wv.getUrl());
             rq.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             rq.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
-            DownloadEngine.start(MainActivity.this, url, name, cur.wv.getSettings().getUserAgentString());
+            FastDownload.show(MainActivity.this, url, name, cur.wv.getSettings().getUserAgentString()); if (true) return;
             toast("Downloading: " + name);
         } catch (Exception e) { toast("Download start nahi hua"); }
     }
