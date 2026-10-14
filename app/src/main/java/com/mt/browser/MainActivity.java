@@ -76,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
         final Tab t = new Tab();
         t.incog = incog;
         WebView w = new WebView(this);
+        w.setBackgroundColor(incog ? 0xFF0B0714 : (isLight() ? 0xFFF4F6FA : 0xFF050B1E));
 
         if (incog) {
             if (profilesSupported()) {
@@ -102,7 +103,6 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onPageFinished(WebView v, String u) {
                 String ti = v.getTitle(); updateNav(); webTheme(v);
                 if (ti != null && !ti.isEmpty()) t.title = ti;
-                v.postDelayed(() -> TabSwitcher.capture(MainActivity.this, t), 900);
                 if (!t.incog) Store.addHistory(MainActivity.this, t.title, u);
             }
         });
@@ -135,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
         if (cur != null && cur != t) { cur.wv.setVisibility(View.GONE); cur.wv.onPause(); }
         if (t.wv.getParent() == null) container.addView(t.wv, new ViewGroup.LayoutParams(-1, -1));
         t.wv.setVisibility(View.VISIBLE);
-        t.wv.onResume(); t.wv.setAlpha(0f); t.wv.animate().alpha(1f).setDuration(180).start(); // fade
+        t.wv.onResume();
         cur = t;
         String u = t.wv.getUrl();
         urlBar.setText(u == null || u.startsWith("file:///android_asset") ? "" : u);
@@ -288,8 +288,12 @@ public class MainActivity extends AppCompatActivity {
                 != android.content.res.Configuration.UI_MODE_NIGHT_YES;
     }
 
+    int themeKey = -1;
     void applyTheme() {
         updateNav();
+        int key = (isLight() ? 1 : 0) + ((cur != null && cur.incog) ? 2 : 0);
+        if (key == themeKey) return;
+        themeKey = key;
         boolean l = isLight();
         findViewById(R.id.rootLayout).setBackgroundColor(l ? 0xFFF4F6FA : 0xFF050B1E);
         ViewGroup bb = findViewById(R.id.bottomBar);

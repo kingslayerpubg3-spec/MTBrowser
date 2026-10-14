@@ -43,12 +43,12 @@
             android:background="?attr/selectableItemBackgroundBorderless" />
         <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
             <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnTabs"
-                android:layout_width="40dp" android:layout_height="40dp"
+                android:layout_width="30dp" android:layout_height="30dp"
                 android:layout_gravity="center"
                 android:background="@drawable/ic_ghost"
                 android:gravity="bottom|end" android:padding="0dp"
                 android:minWidth="0dp" android:minHeight="0dp"
-                android:text="1" android:textSize="11sp" android:textStyle="bold"
+                android:text="1" android:textSize="9sp" android:textStyle="bold"
                 android:textColor="#2E8BFF" />
         </FrameLayout>
         <ImageButton android:id="@+id/btnHome"

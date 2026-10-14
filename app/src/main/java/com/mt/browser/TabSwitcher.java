@@ -247,7 +247,7 @@ public class TabSwitcher {
             float s = 1f - 0.14f * dist;
             c.setScaleX(s);
             c.setScaleY(s);
-            c.setAlpha(1f - 0.45f * dist);
+            c.setAlpha(1f - 0.25f * dist);
         }
     }
 }
