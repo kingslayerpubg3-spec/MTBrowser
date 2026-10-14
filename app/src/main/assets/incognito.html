@@ -1,20 +1,29 @@
-<!DOCTYPE html>
-<html><head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  body{margin:0;background:#0B0714;color:#fff;font-family:sans-serif;text-align:center;padding:70px 24px}
-  .ic{font-size:70px}
-  h2{margin:18px 0 8px}
-  p{color:#9A92B0;font-size:14px;line-height:1.5}
-  form{display:flex;background:#2A1646;border-radius:26px;padding:4px 16px;margin-top:40px}
-  input{flex:1;background:none;border:0;outline:0;color:#fff;font-size:16px;padding:12px 0}
-  button{background:none;border:0;color:#B388FF;font-size:18px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{margin:0;min-height:100vh;color:#fff;font-family:sans-serif;text-align:center;padding:54px 22px 40px;overscroll-behavior:none;background:radial-gradient(ellipse at 50% 0%,#3A1F78 0%,#1B1038 45%,#0B0714 100%) fixed}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.g{width:112px;height:112px;margin:0 auto 18px;filter:drop-shadow(0 0 22px rgba(154,134,255,.75));animation:fl 3.6s ease-in-out infinite}
+h2{margin:0 0 8px;font-size:26px;animation:up .5s both}
+p.s{margin:0 auto 24px;color:#B7A9E6;font-size:14px;line-height:1.55;max-width:300px;animation:up .5s .08s both}
+form{display:flex;align-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(180,160,255,.28);border-radius:28px;padding:4px 8px 4px 18px;margin:0 0 22px;animation:up .5s .16s both}
+input{flex:1;min-width:0;background:none;border:0;outline:0;color:#fff;font-size:16px;padding:13px 0}
+input::placeholder{color:#9D90CC}
+button{width:40px;height:40px;border:0;border-radius:50%;background:#8E6CFF;color:#fff;font-size:17px}
+button:active{transform:scale(.9)}
+.c{display:flex;align-items:center;gap:12px;text-align:left;background:rgba(255,255,255,.06);border:1px solid rgba(180,160,255,.16);border-radius:16px;padding:14px 16px;margin-bottom:10px;font-size:14px;color:#E4DCFF;animation:up .5s both}
+.c b{flex:none;width:26px;height:26px;border-radius:50%;background:#8E6CFF;display:flex;align-items:center;justify-content:center;font-size:14px}
 </style></head><body>
-<div class="ic">🕶️</div>
-<h2>You're in Incognito Mode</h2>
-<p>Aapki browsing history, cookies aur<br>site data save nahi hoga.</p>
+<svg class="g" viewBox="0 0 24 24"><path d="M5,20 L5,11 C5,7.13 8.13,4 12,4 C15.87,4 19,7.13 19,11 L19,20 L16,18 L12,20 L8,18 Z" fill="rgba(142,108,255,.18)" stroke="#B9A6FF" stroke-width="1.4" stroke-linejoin="round"/><circle cx="9.7" cy="10.5" r="1.1" fill="#B9A6FF"/><circle cx="14.3" cy="10.5" r="1.1" fill="#B9A6FF"/></svg>
+<h2>Incognito mode on</h2>
+<p class="s">Is tab me aapki browsing history save nahi hogi.</p>
 <form action="https://www.google.com/search" method="get">
-  <input name="q" placeholder="Search or type URL" autocomplete="off">
-  <button type="submit">🔍</button>
+<input name="q" placeholder="Search or type URL" autocomplete="off"><button type="submit">&#128269;</button>
 </form>
+<div class="c" style="animation-delay:.24s"><b>&#10003;</b>History aur search save nahi hote</div>
+<div class="c" style="animation-delay:.32s"><b>&#10003;</b>Cookies normal tabs se alag rehti hain</div>
+<div class="c" style="animation-delay:.40s"><b>&#10003;</b>Downloads aur bookmarks bache rahenge</div>
 </body></html>

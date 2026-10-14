@@ -42,6 +42,7 @@ public class TabSwitcher {
         incogMode = a.cur != null && a.cur.incog;
         Dialog d = new Dialog(a, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
         build(a, d);
+        d.getWindow().getAttributes().windowAnimations = android.R.style.Animation_Dialog;
         d.show();
     }
 
@@ -121,6 +122,8 @@ public class TabSwitcher {
                 final MainActivity.Tab t = items.get(i);
                 LinearLayout col = (LinearLayout) hd.itemView;
                 col.removeAllViews();
+                col.setTranslationY(0f);
+                col.setAlpha(1f);
                 TextView ti = new TextView(a);
                 ti.setText(t.title);
                 ti.setSingleLine(true);
@@ -163,7 +166,8 @@ public class TabSwitcher {
                 x.setOnClickListener(v -> {
                     String u = t.wv.getUrl();
                     if (u != null && !u.startsWith("file:")) closed.add(new String[]{u, t.incog ? "1" : "0"});
-                    a.closeTab(t);
+                    col.animate().translationY(-cardH).alpha(0f).setDuration(220).withEndAction(() -> { a.closeTab(t); build(a, d); }).start();
+                    if (true) return;
                     build(a, d);
                 });
                 card.setOnClickListener(v -> { a.switchTo(t); d.dismiss(); });
@@ -172,6 +176,7 @@ public class TabSwitcher {
         });
 
         rv.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override public void onScrolled(RecyclerView r, int dx, int dy) { scaleCards(r); }
             @Override public void onScrollStateChanged(RecyclerView r, int s) {
                 if (s == RecyclerView.SCROLL_STATE_IDLE) {
                     View v = snap.findSnapView(lm);
@@ -181,6 +186,8 @@ public class TabSwitcher {
         });
         int ci = Math.max(0, items.indexOf(a.cur));
         lm.scrollToPositionWithOffset(ci, 0);
+        rv.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        rv.post(() -> scaleCards(rv));
         pos.setText((ci + 1) + " / " + items.size());
         root.addView(rv, new LinearLayout.LayoutParams(-1, 0, 1f));
         root.addView(pos);
@@ -229,5 +236,18 @@ public class TabSwitcher {
         bar.addView(add, l2);
         bar.addView(un, l3);
         root.addView(bar);
+    }
+
+    static void scaleCards(RecyclerView r) {
+        float mid = r.getWidth() / 2f;
+        for (int i = 0; i < r.getChildCount(); i++) {
+            View c = r.getChildAt(i);
+            float cc = (c.getLeft() + c.getRight()) / 2f;
+            float dist = Math.min(1f, Math.abs(cc - mid) / Math.max(1f, r.getWidth() * 0.6f));
+            float s = 1f - 0.14f * dist;
+            c.setScaleX(s);
+            c.setScaleY(s);
+            c.setAlpha(1f - 0.45f * dist);
+        }
     }
 }
