@@ -88,18 +88,18 @@ public class DownloadsActivity extends AppCompatActivity {
         LinearLayout q = new LinearLayout(this);
         q.setGravity(Gravity.CENTER_VERTICAL);
         q.setBackground(bg(UiTheme.chip(this), 0, 18));
-        q.setPadding(dp(14), dp(14), dp(14), dp(14));
+        q.setPadding(dp(10), dp(9), dp(10), dp(9));
         ImageView ic = new ImageView(this);
         ic.setImageResource(icon);
         ic.setColorFilter(Color.WHITE);
-        ic.setPadding(dp(9), dp(9), dp(9), dp(9));
+        ic.setPadding(dp(7), dp(7), dp(7), dp(7));
         GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{c1, c2});
         g.setShape(GradientDrawable.OVAL);
         ic.setBackground(g);
-        q.addView(ic, new LinearLayout.LayoutParams(dp(40), dp(40)));
-        TextView t = tv(label, 15, UiTheme.tx(this), true);
+        q.addView(ic, new LinearLayout.LayoutParams(dp(30), dp(30)));
+        TextView t = tv(label, 13, UiTheme.tx(this), true);
         t.setSingleLine(true);
-        q.addView(t, lp(-2, -2, 10, 0, 0, 0));
+        q.addView(t, lp(-2, -2, 8, 0, 0, 0));
         q.setOnClickListener(cl);
         return q;
     }
@@ -153,7 +153,7 @@ public class DownloadsActivity extends AppCompatActivity {
         LinearLayout head = new LinearLayout(this);
         head.setOrientation(LinearLayout.VERTICAL);
         head.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{acc, acc2}));
-        head.setPadding(dp(8), dp(6), dp(8), dp(38));
+        head.setPadding(dp(8), dp(6), dp(8), dp(20));
         LinearLayout top = new LinearLayout(this);
         top.setGravity(Gravity.CENTER_VERTICAL);
         ImageView bk = new ImageView(this);
@@ -163,12 +163,6 @@ public class DownloadsActivity extends AppCompatActivity {
         bk.setOnClickListener(v -> finish());
         top.addView(bk, new LinearLayout.LayoutParams(dp(46), dp(46)));
         top.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1f));
-        ImageView pl = new ImageView(this);
-        pl.setImageResource(R.drawable.ic_m_palette);
-        pl.setColorFilter(Color.WHITE);
-        pl.setPadding(dp(11), dp(11), dp(11), dp(11));
-        pl.setOnClickListener(v -> ThemePicker.dialog(DownloadsActivity.this));
-        top.addView(pl, new LinearLayout.LayoutParams(dp(46), dp(46)));
         head.addView(top);
         tvSpeed = tv("0 KB/s", 50, Color.WHITE, true);
         tvSpeed.setGravity(Gravity.CENTER);
@@ -194,9 +188,8 @@ public class DownloadsActivity extends AppCompatActivity {
         c.setOrientation(LinearLayout.VERTICAL);
         c.setPadding(dp(16), dp(18), dp(16), dp(20));
         sv.addView(c);
-        LinearLayout.LayoutParams sp2 = lp(-1, 0, 0, -26, 0, 0);
-        sp2.weight = 1f;
-        root.addView(sv, sp2);
+        LinearLayout body = new LinearLayout(this); body.setBackgroundColor(acc2); body.addView(sv, new LinearLayout.LayoutParams(-1, -1)); LinearLayout.LayoutParams sp2 = new LinearLayout.LayoutParams(-1, 0, 1f);
+        root.addView(body, sp2);
 
         LinearLayout cr = new LinearLayout(this);
         LinearLayout.LayoutParams w1 = lp(0, -2, 0, 0, 6, 0);
@@ -330,7 +323,7 @@ public class DownloadsActivity extends AppCompatActivity {
         TextView nm = tv(it.name, 15, tx, false);
         nm.setSingleLine(true);
         nm.setEllipsize(TextUtils.TruncateAt.MIDDLE);
-        hd.sz = tv("", 13, sub, false);
+        hd.sz = tv("", 11, sub, false);
         if (!done) {
             LinearLayout t1 = new LinearLayout(this);
             t1.setGravity(Gravity.CENTER_VERTICAL);
@@ -344,8 +337,8 @@ public class DownloadsActivity extends AppCompatActivity {
             hd.bar.setMax(1000);
             mid.addView(hd.bar, lp(-1, dp(6), 0, 8, 0, 0));
             LinearLayout b2 = new LinearLayout(this);
-            hd.sub = tv("", 13, sub, false);
-            hd.right = tv("", 13, sub, false);
+            hd.sub = tv("", 12, sub, false);
+            hd.right = tv("", 11, sub, false);
             b2.addView(hd.sub, new LinearLayout.LayoutParams(0, -2, 1f));
             b2.addView(hd.right);
             mid.addView(b2, lp(-1, -2, 0, 6, 0, 0));

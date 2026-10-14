@@ -107,18 +107,11 @@ public class SettingsActivity extends AppCompatActivity {
         root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
 
-        LinearLayout g1 = group("Appearance");
+        LinearLayout g1 = group("App theme (poore app ke liye)");
         LinearLayout pk = new LinearLayout(this);
         pk.setPadding(dp(14), dp(0), dp(14), dp(16));
         pk.addView(ThemePicker.build(this, () -> recreate()), new LinearLayout.LayoutParams(-1, -2));
         g1.addView(pk);
-        final TextView[] bt = new TextView[1];
-        bt[0] = row(g1, R.drawable.ic_m_moon, 0xFF6C4DE0, "Browser theme", Prefs.themeName(this), null,
-            v -> new AlertDialog.Builder(this).setTitle("Browser theme")
-                .setItems(new String[]{"Dark", "Light", "Auto (system)"}, (d, i) -> {
-                    Prefs.setTheme(this, i);
-                    bt[0].setText(Prefs.themeName(this));
-                }).show());
 
         LinearLayout g2 = group("Browsing");
         final Switch sw = new Switch(this);

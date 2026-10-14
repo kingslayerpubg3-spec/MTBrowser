@@ -140,7 +140,7 @@ public class MenuSheet {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(a, 18), dp(a, 10), dp(a, 18), dp(a, 14));
         GradientDrawable rb = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                l ? new int[]{0xFFFFFFFF, 0xFFEAF0FC} : new int[]{0xFF16244F, 0xFF0A112B});
+                new int[]{UiTheme.bg1(a), UiTheme.bg2(a)});
         float cr = dp(a, 28);
         rb.setCornerRadii(new float[]{cr, cr, cr, cr, 0, 0, 0, 0});
         root.setBackground(rb);
@@ -194,7 +194,7 @@ public class MenuSheet {
         r2.addView(tileItem(a, d, R.drawable.ic_m_star, "Bookmark", 0xFFFFC53D, fill, stroke, tx, () -> a.addBookmark()), w());
         r2.addView(tileItem(a, d, R.drawable.ic_m_moon, "Night", night ? 0xFFCDBDFF : 0xFF8C9DFF,
                 night ? 0x336C4DE0 : fill, night ? 0xFF6C4DE0 : stroke, tx, () -> {
-            Prefs.setTheme(a, a.isLight() ? 0 : 1);
+            UiTheme.setMode(a, a.isLight() ? 0 : 2);
             a.applyTheme();
         }), w());
         r2.addView(tileItem(a, d, R.drawable.ic_m_refresh, "Refresh", 0xFF3DD6C6, fill, stroke, tx, () -> a.cur.wv.reload()), w());

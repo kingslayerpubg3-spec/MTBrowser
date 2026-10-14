@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
         final Tab t = new Tab();
         t.incog = incog;
         WebView w = new WebView(this);
-        w.setBackgroundColor(incog ? 0xFF0B0714 : (isLight() ? 0xFFF4F6FA : 0xFF050B1E));
+        w.setBackgroundColor(incog ? 0xFF0B0714 : UiTheme.bg2(this));
 
         if (incog) {
             if (profilesSupported()) {
@@ -139,7 +139,6 @@ public class MainActivity extends AppCompatActivity {
         cur = t;
         String u = t.wv.getUrl();
         urlBar.setText(u == null || u.startsWith("file:///android_asset") ? "" : u);
-        urlBar.setBackgroundResource(t.incog ? R.drawable.url_bg_incog : R.drawable.url_bg);
         progress.setVisibility(View.GONE);
         btnTabs.setText(String.valueOf(tabs.size()));
         applyTheme();
@@ -280,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
             .show();
     }
 
-    boolean isLight() {
+    boolean isLightOld() {
         int t = Prefs.theme(this);
         if (t == 1) return true;
         if (t == 0) return false;
@@ -289,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     int themeKey = -1;
-    void applyTheme() {
+    void applyThemeOld() {
         updateNav();
         int key = (isLight() ? 1 : 0) + ((cur != null && cur.incog) ? 2 : 0);
         if (key == themeKey) return;
@@ -316,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    void webTheme(WebView w) {
+    void webThemeOld(WebView w) {
         String u = w.getUrl();
         if (u != null && u.startsWith("file:///android_asset") && !u.contains("incognito"))
             w.evaluateJavascript("document.body.classList.toggle('light'," + isLight() + ")", null);
@@ -509,5 +508,67 @@ public class MainActivity extends AppCompatActivity {
         if (cur == null) return;
         findViewById(R.id.btnBack).setAlpha(cur.wv.canGoBack() ? 1f : 0.3f);
         findViewById(R.id.btnFwd).setAlpha(cur.wv.canGoForward() ? 1f : 0.3f);
+    }
+
+    int uiKey = -1;
+
+    boolean isLight() { return UiTheme.light(this); }
+
+    String hex(int c) { return String.format("#%06X", 0xFFFFFF & c); }
+
+    void applyTheme() {
+        updateNav();
+        boolean inc = cur != null && cur.incog;
+        int key = UiTheme.ver(this) * 2 + (inc ? 1 : 0);
+        if (key == uiKey) { if (cur != null) webTheme(cur.wv); return; }
+        uiKey = key;
+        boolean l = isLight();
+        float dn = getResources().getDisplayMetrics().density;
+        int bg = UiTheme.bg2(this), card = UiTheme.card(this), tx = UiTheme.tx(this);
+        findViewById(R.id.rootLayout).setBackgroundColor(inc ? 0xFF0B0714 : bg);
+        ViewGroup bb = findViewById(R.id.bottomBar);
+        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+        g.setColor(inc ? 0xFF1E1636 : card);
+        float rr = 20 * dn;
+        g.setCornerRadii(new float[]{rr, rr, rr, rr, 0, 0, 0, 0});
+        bb.setBackground(g);
+        bb.setElevation(8 * dn);
+        for (int i = 0; i < bb.getChildCount(); i++) {
+            View c = bb.getChildAt(i);
+            if (c instanceof ImageButton) ((ImageButton) c).setColorFilter(tx);
+        }
+        btnTabs.setBackgroundTintList(android.content.res.ColorStateList.valueOf(tx));
+        btnTabs.setTextColor(tx);
+        android.graphics.drawable.GradientDrawable ub = new android.graphics.drawable.GradientDrawable();
+        ub.setColor(inc ? 0xFF2A1646 : UiTheme.chip(this));
+        ub.setCornerRadius(24 * dn);
+        ub.setStroke((int) dn, inc ? 0xFF5B4A9E : UiTheme.stroke(this));
+        urlBar.setBackground(ub);
+        urlBar.setTextColor(inc ? 0xFFFFFFFF : tx);
+        urlBar.setHintTextColor(UiTheme.sub(this));
+        progress.setProgressTintList(android.content.res.ColorStateList.valueOf(UiTheme.acc(this)));
+        for (Tab t : tabs) if (!t.incog) t.wv.setBackgroundColor(bg);
+        if (fullView == null) {
+            getWindow().setStatusBarColor(inc ? 0xFF0B0714 : bg);
+            getWindow().setNavigationBarColor(inc ? 0xFF1E1636 : card);
+            getWindow().getDecorView().setSystemUiVisibility(
+                l ? (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR) : 0);
+        }
+        if (cur != null) webTheme(cur.wv);
+    }
+
+    void webTheme(WebView w) {
+        String u = w.getUrl();
+        if (u == null || !u.startsWith("file:///android_asset") || u.contains("incognito")) return;
+        boolean l = isLight();
+        String js = "var s=document.documentElement.style;"
+            + "s.setProperty('--bg1','" + hex(UiTheme.bg1(this)) + "');"
+            + "s.setProperty('--bg2','" + hex(UiTheme.bg2(this)) + "');"
+            + "s.setProperty('--card','" + (l ? "#FFFFFF" : "rgba(255,255,255,.07)") + "');"
+            + "s.setProperty('--bd','" + (l ? "#DCE2EF" : "rgba(255,255,255,.10)") + "');"
+            + "s.setProperty('--tx','" + hex(UiTheme.tx(this)) + "');"
+            + "s.setProperty('--sub','" + hex(UiTheme.sub(this)) + "');"
+            + "s.setProperty('--ac','" + hex(UiTheme.acc(this)) + "');";
+        w.evaluateJavascript(js, null);
     }
 }

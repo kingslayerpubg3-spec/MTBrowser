@@ -80,12 +80,6 @@ public class LibraryActivity extends AppCompatActivity {
         tc.addView(count);
         hr.addView(tc, lp(0, -2, 4, 0, 0, 0));
         ((LinearLayout.LayoutParams) tc.getLayoutParams()).weight = 1f;
-        ImageView pl = new ImageView(this);
-        pl.setImageResource(R.drawable.ic_m_palette);
-        pl.setColorFilter(tx);
-        pl.setPadding(dp(10), dp(10), dp(10), dp(10));
-        pl.setOnClickListener(v -> ThemePicker.dialog(LibraryActivity.this));
-        hr.addView(pl, new LinearLayout.LayoutParams(dp(44), dp(44)));
         TextView clr = tv("Clear all", 13, acc, true);
         clr.setBackground(bg(UiTheme.chip(this), 0, 18));
         clr.setPadding(dp(14), dp(8), dp(14), dp(8));

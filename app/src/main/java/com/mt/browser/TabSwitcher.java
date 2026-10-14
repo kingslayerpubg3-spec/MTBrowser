@@ -47,8 +47,8 @@ public class TabSwitcher {
     }
 
     static void build(final MainActivity a, final Dialog d) {
-        final int bg = incogMode ? 0xFF1E1636 : 0xFF0A1530;
-        final int accent = incogMode ? 0xFF9A86FF : 0xFF2E8BFF;
+        final int bg = incogMode ? 0xFF1E1636 : (UiTheme.light(a) ? 0xFF0A1530 : UiTheme.bg2(a));
+        final int accent = incogMode ? 0xFF9A86FF : UiTheme.acc(a);
         d.getWindow().setBackgroundDrawable(new ColorDrawable(bg));
         DisplayMetrics dm = a.getResources().getDisplayMetrics();
         final int cardW = (int) (dm.widthPixels * 0.68f);
