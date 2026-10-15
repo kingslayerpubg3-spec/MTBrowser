@@ -147,7 +147,6 @@ public class SettingsActivity extends AppCompatActivity {
                 }).show());
 
         LinearLayout g4 = group("Downloads"); final Switch sw2 = new Switch(this); sw2.setChecked(Prefs.wifiOnly(this)); sw2.setOnCheckedChangeListener((vw, on) -> Prefs.setWifiOnly(this, on)); row(g4, R.drawable.ic_m_download, 0xFF4C8DFF, "Sirf Wi-Fi par download", "Mobile data par download nahi hoga", sw2, vw -> sw2.toggle()); final Switch sw3 = new Switch(this); sw3.setChecked(Prefs.clipCatch(this)); sw3.setOnCheckedChangeListener((vw, on) -> Prefs.setClipCatch(this, on)); row(g4, R.drawable.ic_m_link, 0xFF8E5CFF, "Clipboard catch", "Copy kiya link app me download offer kare", sw3, vw -> sw3.toggle());
-        LinearLayout g5 = group("Page"); final TextView[] tzv = new TextView[1]; tzv[0] = row(g5, R.drawable.ic_m_file, 0xFF14B8A6, "Text size", Prefs.textZoom(this) + "%", null, vw -> new AlertDialog.Builder(this).setTitle("Text size").setItems(new String[]{"Small (85%)", "Normal (100%)", "Large (120%)", "Extra large (140%)"}, (dd, i) -> { int[] z = {85, 100, 120, 140}; Prefs.setTextZoom(this, z[i]); tzv[0].setText(z[i] + "%"); }).show());
         LinearLayout g3 = group("Data");
         row(g3, R.drawable.ic_m_delete, 0xFFEF4444, "Clear data", "History, bookmarks, cookies, cache", null,
             v -> new AlertDialog.Builder(this).setTitle("Sab data clear karein?")

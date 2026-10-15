@@ -24,6 +24,4 @@ public class Prefs {
     public static void setWifiOnly(Context c, boolean v) { sp(c).edit().putBoolean("wifionly", v).apply(); }
     public static boolean clipCatch(Context c) { return sp(c).getBoolean("clipcatch", true); }
     public static void setClipCatch(Context c, boolean v) { sp(c).edit().putBoolean("clipcatch", v).apply(); }
-    public static int textZoom(Context c) { return sp(c).getInt("tz", 100); }
-    public static void setTextZoom(Context c, int v) { sp(c).edit().putInt("tz", v).apply(); }
 }
