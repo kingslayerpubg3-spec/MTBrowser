@@ -1,13 +1,15 @@
 (function(){
 if(window.__mtv)return;window.__mtv=1;
-var btn=null,cur=null,hideT=0,ac='#3B82F6';
+var btn=null,cur=null,cs='',hideT=0,ac='#3B82F6';
 try{ac=MTBridge.accent();}catch(e){}
 function src(v){var u=v.currentSrc||v.src||'';if(!u){var s=v.querySelector('source');if(s)u=s.src||'';}return u;}
+function dur(v){var d=v.duration;if(d===Infinity)return 1e7;return(isFinite(d)&&d>0)?d:0;}
 function rep(v){try{MTBridge.video(src(v),document.title||'');}catch(e){}}
 function playing(){
-var vs=document.querySelectorAll('video'),best=null,ba=0;
+var vs=document.querySelectorAll('video'),best=null,bd=-1,ba=0;
 for(var i=0;i<vs.length;i++){var v=vs[i];if(v.paused||v.ended||v.readyState<2)continue;
-var r=v.getBoundingClientRect(),a=r.width*r.height;if(a>ba){ba=a;best=v;}}
+var r=v.getBoundingClientRect(),a=r.width*r.height;if(a<5000)continue;
+var d=dur(v);if(d>bd||(d===bd&&a>ba)){best=v;bd=d;ba=a;}}
 return best;}
 function mk(){
 if(btn)return btn;
@@ -25,10 +27,11 @@ hideT=setTimeout(function(){if(btn){btn.style.opacity=0;btn.style.pointerEvents=
 function place(){
 var v=playing();
 if(!v){
-if(cur){cur=null;try{MTBridge.gone();}catch(e){}}
+if(cur){cur=null;cs='';try{MTBridge.gone();}catch(e){}}
 if(btn){btn.style.display='none';btn.style.opacity=0;btn.style.pointerEvents='none';}
 return;}
-if(v!==cur){cur=v;rep(v);show();}
+var s=src(v);
+if(v!==cur||s!==cs){cur=v;cs=s;rep(v);show();}
 var r=v.getBoundingClientRect(),vw=window.innerWidth,vh=window.innerHeight;
 var top=Math.max(r.top,0)+10,right=Math.min(r.right,vw);
 if(r.width<140||r.height<80||top>Math.min(r.bottom,vh)-52){if(btn)btn.style.display='none';return;}
@@ -42,6 +45,7 @@ if(t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom)
 },{capture:true,passive:true});
 document.addEventListener('play',function(e){if(e.target&&e.target.tagName==='VIDEO')setTimeout(place,250);},true);
 document.addEventListener('pause',function(){setTimeout(place,250);},true);
+document.addEventListener('loadedmetadata',function(){setTimeout(place,250);},true);
 window.addEventListener('scroll',place,true);
 window.addEventListener('resize',place);
 setInterval(place,300);

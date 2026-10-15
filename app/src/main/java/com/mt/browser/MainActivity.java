@@ -704,7 +704,7 @@ public class MainActivity extends AppCompatActivity {
         return n;
     }
 
-    void onDlFab() {
+    void onDlFabOld() {
         final Tab t = cur;
         if (t == null) return;
         final ArrayList<String> urls = new ArrayList<>();
@@ -732,5 +732,50 @@ public class MainActivity extends AppCompatActivity {
         }
         new AlertDialog.Builder(this).setTitle("Video choose karo (" + names.length + ")")
             .setItems(names, (d, i) -> FastDownload.show(MainActivity.this, urls.get(i), nameFor(urls.get(i), ti), ua)).show();
+    }
+
+    void onDlFab() {
+        final Tab t = cur;
+        if (t == null) return;
+        final String ua = t.wv.getSettings().getUserAgentString();
+        final String ti = (t.vtitle != null && !t.vtitle.isEmpty()) ? t.vtitle : t.title;
+        String vu = t.vurl == null ? "" : t.vurl;
+        String lv = vu.toLowerCase();
+        if (vu.startsWith("http") && !lv.contains(".m3u8") && !lv.contains(".mpd")) {
+            FastDownload.show(this, vu, nameFor(vu, ti), ua);
+            return;
+        }
+        final ArrayList<String> urls = new ArrayList<>();
+        synchronized (t.sniffed) { urls.addAll(t.sniffed); }
+        if (urls.isEmpty()) {
+            new AlertDialog.Builder(this).setTitle("Direct download nahi mila")
+                .setMessage("Ye video stream (HLS ya blob) hai, jise seedha download nahi kar sakte. Smart Download se page ki files dekh sakte ho.")
+                .setPositiveButton("Smart Download", (d, w) -> smartDownload())
+                .setNegativeButton("Theek hai", null).show();
+            return;
+        }
+        Toast.makeText(this, "Files ki size check ho rahi hai...", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            final ArrayList<long[]> sz = new ArrayList<>();
+            final ArrayList<String> ul = new ArrayList<>();
+            for (String u : urls) {
+                DownloadEngine.Item it = new DownloadEngine.Item();
+                it.url = u;
+                it.ua = ua == null ? "" : ua;
+                long[] p = DownloadEngine.probe(it);
+                int pos = 0;
+                while (pos < sz.size() && sz.get(pos)[0] >= p[0]) pos++;
+                sz.add(pos, p);
+                ul.add(pos, u);
+            }
+            runOnUiThread(() -> {
+                String[] names = new String[ul.size()];
+                for (int i = 0; i < names.length; i++)
+                    names[i] = (i == 0 ? "★ " : "") + (sz.get(i)[0] > 0 ? DownloadsActivity.size(sz.get(i)[0]) : "?")
+                            + "  •  " + URLUtil.guessFileName(ul.get(i), null, null);
+                new AlertDialog.Builder(MainActivity.this).setTitle("Sabse badi file = asli video")
+                    .setItems(names, (d, i) -> FastDownload.show(MainActivity.this, ul.get(i), nameFor(ul.get(i), ti), ua)).show();
+            });
+        }).start();
     }
 }
