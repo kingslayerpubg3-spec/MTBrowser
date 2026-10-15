@@ -28,6 +28,9 @@ public class MainActivity extends AppCompatActivity {
         WebView wv;
         boolean incog;
         String title = "New Tab";
+        String vurl = "", vtitle = "";
+        boolean vplaying, hls;
+        final java.util.Set<String> sniffed = java.util.Collections.synchronizedSet(new java.util.LinkedHashSet<String>());
         android.graphics.Bitmap thumb;
     }
 
@@ -95,12 +98,12 @@ public class MainActivity extends AppCompatActivity {
         if (incog) s.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         w.setWebViewClient(new WebViewClient() {
-            @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) { return (Prefs.adBlock(MainActivity.this) && AdBlock.isAd(r.getUrl().getHost())) ? new WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0])) : null; }
+            @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) { Sniffer.see(MainActivity.this, t, r.getUrl().toString()); return (Prefs.adBlock(MainActivity.this) && AdBlock.isAd(r.getUrl().getHost())) ? new WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0])) : null; }
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return handleInternal(r.getUrl().toString()); }
-            @Override public void onPageStarted(WebView v, String u, Bitmap f) {
+            @Override public void onPageStarted(WebView v, String u, Bitmap f) { Sniffer.reset(MainActivity.this, t);
                 if (t == cur) urlBar.setText(u.startsWith("file:///android_asset") ? "" : u);
             }
-            @Override public void onPageFinished(WebView v, String u) {
+            @Override public void onPageFinished(WebView v, String u) { injectVideoJs(v);
                 String ti = v.getTitle(); updateNav(); webTheme(v);
                 if (ti != null && !ti.isEmpty()) t.title = ti;
                 if (!t.incog) Store.addHistory(MainActivity.this, t.title, u);
@@ -125,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Downloading: " + name, Toast.LENGTH_SHORT).show();
         });
 
+        w.addJavascriptInterface(new VideoBridge(MainActivity.this, t), "MTBridge");
         t.wv = w;
         tabs.add(t);
         switchTo(t);
@@ -391,7 +395,7 @@ public class MainActivity extends AppCompatActivity {
             View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE); if (dlFab != null) dlFab.bringToFront();
     }
 
     void hideFull() {
@@ -423,7 +427,7 @@ public class MainActivity extends AppCompatActivity {
         int vis = pip ? View.GONE : View.VISIBLE;
         findViewById(R.id.urlBar).setVisibility(vis);
         findViewById(R.id.bottomBar).setVisibility(vis);
-        if (pip) progress.setVisibility(View.GONE);
+        if (pip) progress.setVisibility(View.GONE); if (pip) { if (dlFab != null) dlFab.setVisibility(View.GONE); } else updateDlFab();
     }
 
     void smartDownload() {
@@ -507,7 +511,7 @@ public class MainActivity extends AppCompatActivity {
     void updateNav() {
         if (cur == null) return;
         findViewById(R.id.btnBack).setAlpha(cur.wv.canGoBack() ? 1f : 0.3f);
-        findViewById(R.id.btnFwd).setAlpha(cur.wv.canGoForward() ? 1f : 0.3f);
+        findViewById(R.id.btnFwd).setAlpha(cur.wv.canGoForward() ? 1f : 0.3f); updateDlFab();
     }
 
     int uiKey = -1;
@@ -631,5 +635,100 @@ public class MainActivity extends AppCompatActivity {
     public void onWindowFocusChanged(boolean f) {
         super.onWindowFocusChanged(f);
         if (f && Prefs.clipCatch(this)) getWindow().getDecorView().post(this::checkClip);
+    }
+
+    String vjs;
+    ImageView dlFab;
+
+    void injectVideoJs(WebView v) {
+        try {
+            String u = v.getUrl();
+            if (u == null || u.startsWith("file:")) return;
+            if (vjs == null) {
+                java.io.InputStream in = getAssets().open("vdl.js");
+                byte[] b = new byte[in.available()];
+                in.read(b);
+                in.close();
+                vjs = new String(b);
+            }
+            v.evaluateJavascript(vjs, null);
+        } catch (Exception e) { }
+    }
+
+    void updateDlFab() {
+        boolean has = cur != null && (cur.vplaying || !cur.sniffed.isEmpty());
+        if (has) showDlFab();
+        else if (dlFab != null) dlFab.setVisibility(View.GONE);
+    }
+
+    void showDlFab() {
+        float dn = getResources().getDisplayMetrics().density;
+        if (dlFab == null) {
+            dlFab = new ImageView(this);
+            dlFab.setImageResource(R.drawable.ic_m_download);
+            dlFab.setColorFilter(0xFFFFFFFF);
+            int p = (int) (13 * dn);
+            dlFab.setPadding(p, p, p, p);
+            android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR, new int[]{UiTheme.acc(this), UiTheme.acc2(this)});
+            g.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            dlFab.setBackground(g);
+            dlFab.setElevation(10 * dn);
+            dlFab.setOnClickListener(x -> onDlFab());
+            MenuSheet.press(dlFab);
+            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams((int) (52 * dn), (int) (52 * dn),
+                    android.view.Gravity.BOTTOM | android.view.Gravity.END);
+            lp.setMargins(0, 0, (int) (16 * dn), (int) (150 * dn));
+            ((ViewGroup) getWindow().getDecorView()).addView(dlFab, lp);
+        }
+        if (dlFab.getVisibility() != View.VISIBLE) {
+            dlFab.setVisibility(View.VISIBLE);
+            dlFab.setScaleX(0f);
+            dlFab.setScaleY(0f);
+            dlFab.animate().scaleX(1f).scaleY(1f).setDuration(220).start();
+        }
+        dlFab.bringToFront();
+    }
+
+    String nameFor(String url, String title) {
+        String n = URLUtil.guessFileName(url, null, null);
+        String l = n.toLowerCase();
+        boolean generic = l.endsWith(".bin") || !n.contains(".") || l.startsWith("download") || l.startsWith("videoplayback");
+        if (generic && title != null && !title.trim().isEmpty()) {
+            String t = title.trim().replaceAll("[\\\\/:*?\"<>|]", " ");
+            if (t.length() > 80) t = t.substring(0, 80);
+            return t + ".mp4";
+        }
+        return n;
+    }
+
+    void onDlFab() {
+        final Tab t = cur;
+        if (t == null) return;
+        final ArrayList<String> urls = new ArrayList<>();
+        String vu = t.vurl;
+        if (vu != null && vu.startsWith("http") && !vu.toLowerCase().contains(".m3u8") && !vu.toLowerCase().contains(".mpd")) urls.add(vu);
+        synchronized (t.sniffed) { for (String s : t.sniffed) if (!urls.contains(s)) urls.add(s); }
+        final String ua = t.wv.getSettings().getUserAgentString();
+        final String ti = (t.vtitle != null && !t.vtitle.isEmpty()) ? t.vtitle : t.title;
+        if (urls.isEmpty()) {
+            new AlertDialog.Builder(this).setTitle("Direct download nahi mila")
+                .setMessage("Ye video stream (HLS ya blob) ho sakta hai, jise seedha download nahi kar sakte. Smart Download se page ki files dekh sakte ho.")
+                .setPositiveButton("Smart Download", (d, w) -> smartDownload())
+                .setNegativeButton("Theek hai", null).show();
+            return;
+        }
+        if (urls.size() == 1) {
+            FastDownload.show(this, urls.get(0), nameFor(urls.get(0), ti), ua);
+            return;
+        }
+        String[] names = new String[urls.size()];
+        for (int i = 0; i < names.length; i++) {
+            String h = "";
+            try { h = Uri.parse(urls.get(i)).getHost(); } catch (Exception e) { }
+            names[i] = URLUtil.guessFileName(urls.get(i), null, null) + "  •  " + (h == null ? "" : h);
+        }
+        new AlertDialog.Builder(this).setTitle("Video choose karo (" + names.length + ")")
+            .setItems(names, (d, i) -> FastDownload.show(MainActivity.this, urls.get(i), nameFor(urls.get(i), ti), ua)).show();
     }
 }
