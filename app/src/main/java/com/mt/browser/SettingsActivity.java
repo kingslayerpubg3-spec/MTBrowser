@@ -146,6 +146,7 @@ public class SettingsActivity extends AppCompatActivity {
                     es[0].setText(Prefs.engineName(this));
                 }).show());
 
+        LinearLayout g4 = group("Downloads"); final Switch sw2 = new Switch(this); sw2.setChecked(Prefs.wifiOnly(this)); sw2.setOnCheckedChangeListener((vw, on) -> Prefs.setWifiOnly(this, on)); row(g4, R.drawable.ic_m_download, 0xFF4C8DFF, "Sirf Wi-Fi par download", "Mobile data par download nahi hoga", sw2, vw -> sw2.toggle()); final Switch sw3 = new Switch(this); sw3.setChecked(Prefs.clipCatch(this)); sw3.setOnCheckedChangeListener((vw, on) -> Prefs.setClipCatch(this, on)); row(g4, R.drawable.ic_m_link, 0xFF8E5CFF, "Clipboard catch", "Copy kiya link app me download offer kare", sw3, vw -> sw3.toggle());
         LinearLayout g3 = group("Data");
         row(g3, R.drawable.ic_m_delete, 0xFFEF4444, "Clear data", "History, bookmarks, cookies, cache", null,
             v -> new AlertDialog.Builder(this).setTitle("Sab data clear karein?")

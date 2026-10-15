@@ -22,6 +22,7 @@ public class DownloadEngine {
     public static class Item {
         public long id;
         public String name = "", url = "", ua = "", uri = "", err = "";
+        public String segs = "";
         public volatile long total, done;
         public volatile int status;
         public volatile double speed;
@@ -46,6 +47,7 @@ public class DownloadEngine {
                 it.url = o.getString("url");
                 it.ua = o.optString("ua");
                 it.uri = o.optString("uri");
+                it.segs = o.optString("segs");
                 it.total = o.optLong("total");
                 it.done = o.optLong("done");
                 it.status = o.optInt("status");
@@ -65,6 +67,7 @@ public class DownloadEngine {
                 o.put("url", it.url);
                 o.put("ua", it.ua);
                 o.put("uri", it.uri);
+                o.put("segs", it.segs);
                 o.put("total", it.total);
                 o.put("done", it.done);
                 o.put("status", it.status);
@@ -103,6 +106,7 @@ public class DownloadEngine {
 
     public static void resume(final Item it) {
         if (it.running) return;
+        if (Prefs.wifiOnly(app) && !onWifi()) { it.status = PAUSED; it.err = "Wi-Fi chahiye"; save(); return; }
         it.stop = false;
         it.status = ACTIVE;
         it.err = "";
@@ -140,7 +144,7 @@ public class DownloadEngine {
         save();
     }
 
-    static void download(Item it) {
+    static void downloadSingle(Item it) {
         HttpURLConnection c = null;
         try {
             File f = new File(dir(), it.id + ".part");
@@ -293,5 +297,171 @@ public class DownloadEngine {
             if (e == null) return false;
             return rename(it, withExt(it.name, e));
         } catch (Exception ex) { return false; }
+    }
+
+    static class Seg { long s, e; volatile long c; String err = ""; }
+
+    static boolean onWifi() {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) app.getSystemService(Context.CONNECTIVITY_SERVICE);
+            android.net.NetworkCapabilities nc = cm.getNetworkCapabilities(cm.getActiveNetwork());
+            return nc != null && nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI);
+        } catch (Exception e) { return true; }
+    }
+
+    static HttpURLConnection open(Item it, String range) throws IOException {
+        HttpURLConnection c = (HttpURLConnection) new URL(it.url).openConnection();
+        c.setConnectTimeout(15000);
+        c.setReadTimeout(20000);
+        c.setInstanceFollowRedirects(true);
+        if (!it.ua.isEmpty()) c.setRequestProperty("User-Agent", it.ua);
+        String ck = CookieManager.getInstance().getCookie(it.url);
+        if (ck != null) c.setRequestProperty("Cookie", ck);
+        try {
+            URL u = new URL(it.url);
+            c.setRequestProperty("Referer", u.getProtocol() + "://" + u.getHost() + "/");
+        } catch (Exception e) { }
+        if (range != null) c.setRequestProperty("Range", range);
+        return c;
+    }
+
+    static long[] probe(Item it) {
+        HttpURLConnection c = null;
+        try {
+            c = open(it, "bytes=0-0");
+            int code = c.getResponseCode();
+            String cr = c.getHeaderField("Content-Range");
+            if (code == 206 && cr != null && cr.contains("/"))
+                return new long[]{Long.parseLong(cr.substring(cr.indexOf('/') + 1).trim()), 1};
+            return new long[]{c.getContentLengthLong(), 0};
+        } catch (Exception e) {
+            return new long[]{0, 0};
+        } finally {
+            if (c != null) c.disconnect();
+        }
+    }
+
+    static void download(Item it) {
+        File f = new File(dir(), it.id + ".part");
+        boolean resume = !it.segs.isEmpty() && f.exists();
+        long total = it.total;
+        boolean multi = resume;
+        if (!resume) {
+            if (f.exists() && f.length() > 0) { downloadSingle(it); return; }
+            long[] p = probe(it);
+            total = p[0];
+            multi = p[1] == 1 && total >= 8L * 1024 * 1024;
+        }
+        if (!multi) { downloadSingle(it); return; }
+        downloadMulti(it, f, total, resume);
+    }
+
+    static String ser(ArrayList<Seg> l) {
+        StringBuilder b = new StringBuilder();
+        for (Seg g : l) {
+            if (b.length() > 0) b.append(';');
+            b.append(g.s).append(':').append(g.c).append(':').append(g.e);
+        }
+        return b.toString();
+    }
+
+    static void runSeg(Item it, File f, Seg g) {
+        int tries = 0;
+        while (!it.stop && g.c <= g.e && tries < 5) {
+            HttpURLConnection c = null;
+            try {
+                c = open(it, "bytes=" + g.c + "-" + g.e);
+                if (c.getResponseCode() != 206) throw new IOException("HTTP " + c.getResponseCode());
+                InputStream in = c.getInputStream();
+                RandomAccessFile r = new RandomAccessFile(f, "rw");
+                r.seek(g.c);
+                byte[] buf = new byte[65536];
+                int n;
+                while (!it.stop && g.c <= g.e && (n = in.read(buf, 0, (int) Math.min(buf.length, g.e - g.c + 1))) > 0) {
+                    r.write(buf, 0, n);
+                    g.c += n;
+                }
+                r.close();
+                in.close();
+                if (g.c <= g.e && !it.stop) tries++; else tries = 0;
+            } catch (Exception e) {
+                g.err = String.valueOf(e.getMessage());
+                tries++;
+                try { Thread.sleep(1000); } catch (Exception x) { }
+            } finally {
+                if (c != null) c.disconnect();
+            }
+        }
+    }
+
+    static void downloadMulti(final Item it, final File f, long total, boolean resume) {
+        final ArrayList<Seg> segs = new ArrayList<>();
+        ArrayList<Thread> th = new ArrayList<>();
+        try {
+            it.total = total;
+            if (resume) {
+                for (String p : it.segs.split(";")) {
+                    String[] x = p.split(":");
+                    Seg g = new Seg();
+                    g.s = Long.parseLong(x[0]);
+                    g.c = Long.parseLong(x[1]);
+                    g.e = Long.parseLong(x[2]);
+                    segs.add(g);
+                }
+            } else {
+                RandomAccessFile r = new RandomAccessFile(f, "rw");
+                r.setLength(total);
+                r.close();
+                int n = total > 200L * 1024 * 1024 ? 8 : 6;
+                long part = total / n;
+                for (int i = 0; i < n; i++) {
+                    Seg g = new Seg();
+                    g.s = i * part;
+                    g.c = g.s;
+                    g.e = i == n - 1 ? total - 1 : (i + 1) * part - 1;
+                    segs.add(g);
+                }
+            }
+            it.segs = ser(segs);
+            save();
+            for (final Seg g : segs) {
+                if (g.c > g.e) continue;
+                Thread t = new Thread(new Runnable() { public void run() { runSeg(it, f, g); } });
+                t.start();
+                th.add(t);
+            }
+            long tw = System.currentTimeMillis(), ts = tw, bw = 0;
+            for (Seg g : segs) bw += g.c - g.s;
+            while (true) {
+                Thread.sleep(500);
+                long sum = 0;
+                for (Seg g : segs) sum += Math.min(g.c, g.e + 1) - g.s;
+                it.done = sum;
+                long now = System.currentTimeMillis();
+                if (now - tw >= 1000) { it.speed = (sum - bw) * 1000.0 / (now - tw); tw = now; bw = sum; }
+                if (now - ts > 5000) { ts = now; it.segs = ser(segs); save(); }
+                boolean alive = false;
+                for (Thread t : th) if (t.isAlive()) alive = true;
+                if (!alive) break;
+            }
+            it.segs = ser(segs);
+            if (it.stop) return;
+            boolean ok = true;
+            String err = "";
+            for (Seg g : segs) if (g.c <= g.e) { ok = false; if (!g.err.isEmpty()) err = g.err; }
+            if (!ok) throw new IOException(err.isEmpty() ? "Incomplete" : err);
+            it.done = total;
+            it.total = total;
+            it.segs = "";
+            publish(it, f);
+            it.status = DONE;
+        } catch (Exception e) {
+            it.stop = true;
+            if (it.status != PAUSED) { it.status = FAILED; it.err = String.valueOf(e.getMessage()); }
+        } finally {
+            it.speed = 0;
+            it.running = false;
+            save();
+        }
     }
 }

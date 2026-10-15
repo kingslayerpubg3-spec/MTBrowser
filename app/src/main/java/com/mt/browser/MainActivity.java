@@ -605,4 +605,31 @@ public class MainActivity extends AppCompatActivity {
         else if (wasCur) { cur = null; switchTo(tabs.get(Math.max(0, idx - 1))); }
         else btnTabs.setText(String.valueOf(tabs.size()));
     }
+
+    void checkClip() {
+        try {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (cm == null || !cm.hasPrimaryClip() || cm.getPrimaryClip().getItemCount() == 0) return;
+            CharSequence t = cm.getPrimaryClip().getItemAt(0).coerceToText(this);
+            if (t == null) return;
+            final String s = t.toString().trim();
+            if (!s.matches("(?s)https?://\\S+")) return;
+            android.content.SharedPreferences sp = getSharedPreferences("mt", 0);
+            if (s.equals(sp.getString("lastclip", ""))) return;
+            sp.edit().putString("lastclip", s).apply();
+            if (isFinishing() || cur == null) return;
+            new AlertDialog.Builder(this).setTitle("Link mila")
+                .setMessage(s.length() > 120 ? s.substring(0, 120) + "..." : s)
+                .setPositiveButton("Download", (d, w) -> FastDownload.show(MainActivity.this, s,
+                        URLUtil.guessFileName(s, null, null), cur.wv.getSettings().getUserAgentString()))
+                .setNeutralButton("Open", (d, w) -> load(s))
+                .setNegativeButton("Ignore", null).show();
+        } catch (Throwable e) { }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean f) {
+        super.onWindowFocusChanged(f);
+        if (f && Prefs.clipCatch(this)) getWindow().getDecorView().post(this::checkClip);
+    }
 }

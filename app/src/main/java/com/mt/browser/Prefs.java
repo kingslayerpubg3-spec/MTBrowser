@@ -20,4 +20,8 @@ public class Prefs {
     public static int theme(Context c) { return sp(c).getInt("theme", 0); }
     public static void setTheme(Context c, int i) { sp(c).edit().putInt("theme", i).apply(); }
     public static String themeName(Context c) { return new String[]{"Dark", "Light", "Auto (system)"}[theme(c)]; }
+    public static boolean wifiOnly(Context c) { return sp(c).getBoolean("wifionly", false); }
+    public static void setWifiOnly(Context c, boolean v) { sp(c).edit().putBoolean("wifionly", v).apply(); }
+    public static boolean clipCatch(Context c) { return sp(c).getBoolean("clipcatch", true); }
+    public static void setClipCatch(Context c, boolean v) { sp(c).edit().putBoolean("clipcatch", v).apply(); }
 }
