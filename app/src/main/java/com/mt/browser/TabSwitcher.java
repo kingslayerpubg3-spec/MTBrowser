@@ -13,6 +13,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.PagerSnapHelper;
 import androidx.recyclerview.widget.RecyclerView;
@@ -42,7 +43,7 @@ public class TabSwitcher {
         incogMode = a.cur != null && a.cur.incog;
         Dialog d = new Dialog(a, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
         build(a, d);
-        d.getWindow().getAttributes().windowAnimations = android.R.style.Animation_Dialog;
+        d.getWindow().setWindowAnimations(android.R.style.Animation_Dialog);
         d.show();
     }
 
@@ -69,7 +70,7 @@ public class TabSwitcher {
         h1.setGravity(Gravity.CENTER);
         root.addView(h1);
         TextView h2 = new TextView(a);
-        h2.setText(incogMode ? "History save nahi hogi, downloads aur bookmarks bache rahenge" : items.size() + " tabs khule hain");
+        h2.setText(incogMode ? "History save nahi hogi" : items.size() + " tabs  •  upar swipe = band");
         h2.setTextColor(0xFF9AA4BC);
         h2.setTextSize(13);
         h2.setGravity(Gravity.CENTER);
@@ -93,10 +94,11 @@ public class TabSwitcher {
     static void addPager(final MainActivity a, final Dialog d, LinearLayout root,
                          final ArrayList<MainActivity.Tab> items, final int cardW, final int cardH,
                          final int m, final int accent, DisplayMetrics dm) {
-        RecyclerView rv = new RecyclerView(a);
+        final RecyclerView rv = new RecyclerView(a);
         final LinearLayoutManager lm = new LinearLayoutManager(a, LinearLayoutManager.HORIZONTAL, false);
         rv.setLayoutManager(lm);
         rv.setClipToPadding(false);
+        rv.setOverScrollMode(View.OVER_SCROLL_NEVER);
         int side = (dm.widthPixels - cardW) / 2 - m;
         rv.setPadding(side, 0, side, 0);
         final PagerSnapHelper snap = new PagerSnapHelper();
@@ -105,8 +107,27 @@ public class TabSwitcher {
         pos.setTextColor(0xFF9AA4BC);
         pos.setGravity(Gravity.CENTER);
         pos.setPadding(0, dp(a, 12), 0, dp(a, 12));
+        final RecyclerView.Adapter[] adp = new RecyclerView.Adapter[1];
 
-        rv.setAdapter(new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+        final java.util.function.Consumer<MainActivity.Tab> remove = t -> {
+            int p = items.indexOf(t);
+            if (p < 0) return;
+            boolean wasCur = t == a.cur;
+            String u = t.wv.getUrl();
+            if (u != null && !u.startsWith("file:")) closed.add(new String[]{u, t.incog ? "1" : "0"});
+            items.remove(p);
+            adp[0].notifyItemRemoved(p);
+            a.closeTab(t);
+            if (items.isEmpty()) { build(a, d); return; }
+            rv.postDelayed(() -> {
+                if (wasCur) adp[0].notifyItemRangeChanged(0, items.size());
+                View sv = snap.findSnapView(lm);
+                if (sv != null) pos.setText((lm.getPosition(sv) + 1) + " / " + items.size());
+                scaleCards(rv);
+            }, 280);
+        };
+
+        adp[0] = new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             @Override public int getItemCount() { return items.size(); }
 
             @Override public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup p, int vt) {
@@ -120,7 +141,7 @@ public class TabSwitcher {
 
             @Override public void onBindViewHolder(RecyclerView.ViewHolder hd, int i) {
                 final MainActivity.Tab t = items.get(i);
-                LinearLayout col = (LinearLayout) hd.itemView;
+                final LinearLayout col = (LinearLayout) hd.itemView;
                 col.removeAllViews();
                 col.setTranslationY(0f);
                 col.setAlpha(1f);
@@ -163,17 +184,32 @@ public class TabSwitcher {
                 x.setGravity(Gravity.CENTER);
                 x.setBackgroundColor(0x99000000);
                 card.addView(x, new FrameLayout.LayoutParams(-1, dp(a, 46), Gravity.BOTTOM));
-                x.setOnClickListener(v -> {
-                    String u = t.wv.getUrl();
-                    if (u != null && !u.startsWith("file:")) closed.add(new String[]{u, t.incog ? "1" : "0"});
-                    col.animate().translationY(-cardH).alpha(0f).setDuration(220).withEndAction(() -> { a.closeTab(t); build(a, d); }).start();
-                    if (true) return;
-                    build(a, d);
-                });
+                x.setOnClickListener(v -> col.animate().translationY(-cardH / 2f).alpha(0f).setDuration(200)
+                        .withEndAction(() -> remove.accept(t)).start());
                 card.setOnClickListener(v -> { a.switchTo(t); d.dismiss(); });
                 col.addView(card, new LinearLayout.LayoutParams(-1, cardH));
             }
-        });
+        };
+        rv.setAdapter(adp[0]);
+
+        new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.UP) {
+            @Override public boolean onMove(RecyclerView r, RecyclerView.ViewHolder v, RecyclerView.ViewHolder t) { return false; }
+            @Override public void onSwiped(RecyclerView.ViewHolder v, int dir) {
+                int p = v.getAdapterPosition();
+                if (p >= 0 && p < items.size()) remove.accept(items.get(p));
+            }
+            @Override public float getSwipeThreshold(RecyclerView.ViewHolder v) { return 0.3f; }
+            @Override public float getSwipeEscapeVelocity(float def) { return def * 0.5f; }
+            @Override public void onChildDraw(Canvas c, RecyclerView r, RecyclerView.ViewHolder v, float dX, float dY, int st, boolean act) {
+                super.onChildDraw(c, r, v, dX, dY, st, act);
+                if (st == ItemTouchHelper.ACTION_STATE_SWIPE)
+                    v.itemView.setAlpha(Math.max(0.1f, 1f - Math.abs(dY) / Math.max(1f, v.itemView.getHeight())));
+            }
+            @Override public void clearView(RecyclerView r, RecyclerView.ViewHolder v) {
+                super.clearView(r, v);
+                scaleCards(r);
+            }
+        }).attachToRecyclerView(rv);
 
         rv.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override public void onScrolled(RecyclerView r, int dx, int dy) { scaleCards(r); }
@@ -186,9 +222,8 @@ public class TabSwitcher {
         });
         int ci = Math.max(0, items.indexOf(a.cur));
         lm.scrollToPositionWithOffset(ci, 0);
-        rv.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        rv.post(() -> scaleCards(rv));
         pos.setText((ci + 1) + " / " + items.size());
+        rv.post(() -> scaleCards(rv));
         root.addView(rv, new LinearLayout.LayoutParams(-1, 0, 1f));
         root.addView(pos);
     }
@@ -201,7 +236,12 @@ public class TabSwitcher {
         ImageView gh = new ImageView(a);
         gh.setImageResource(R.drawable.ic_ghost);
         gh.setPadding(dp(a, 9), dp(a, 9), dp(a, 9), dp(a, 9));
-        GradientDrawable gb = new GradientDrawable(); gb.setShape(GradientDrawable.OVAL); gb.setColor(incogMode ? 0xFF6C4DE0 : 0x26FFFFFF); gh.setBackground(gb); gh.setColorFilter(0xFFFFFFFF); gh.setAlpha(incogMode ? 1f : 0.7f);
+        GradientDrawable gb = new GradientDrawable();
+        gb.setShape(GradientDrawable.OVAL);
+        gb.setColor(incogMode ? 0xFF6C4DE0 : 0x26FFFFFF);
+        gh.setBackground(gb);
+        gh.setColorFilter(0xFFFFFFFF);
+        gh.setAlpha(incogMode ? 1f : 0.7f);
         gh.setOnClickListener(v -> { incogMode = !incogMode; build(a, d); });
 
         ImageView add = new ImageView(a);
@@ -247,7 +287,7 @@ public class TabSwitcher {
             float s = 1f - 0.14f * dist;
             c.setScaleX(s);
             c.setScaleY(s);
-            c.setAlpha(1f - 0.25f * dist);
+            if (c.getTranslationY() == 0f) c.setAlpha(1f - 0.25f * dist);
         }
     }
 }

@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
         w.loadUrl(incog ? INCOG : HOME);
     }
 
-    void switchTo(Tab t) {
+    void switchToOld(Tab t) {
         if (cur != null && cur != t) { cur.wv.setVisibility(View.GONE); cur.wv.onPause(); }
         if (t.wv.getParent() == null) container.addView(t.wv, new ViewGroup.LayoutParams(-1, -1));
         t.wv.setVisibility(View.VISIBLE);
@@ -144,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
         applyTheme();
     }
 
-    void closeTab(Tab t) {
+    void closeTabOld(Tab t) {
         int idx = tabs.indexOf(t);
         tabs.remove(t);
         if (cur == t) cur = null;
@@ -521,7 +521,9 @@ public class MainActivity extends AppCompatActivity {
         boolean inc = cur != null && cur.incog;
         int key = UiTheme.ver(this) * 2 + (inc ? 1 : 0);
         if (key == uiKey) { if (cur != null) webTheme(cur.wv); return; }
+        int prevKey = uiKey;
         uiKey = key;
+        if (prevKey != -1 && prevKey / 2 != key / 2) { View rl = findViewById(R.id.rootLayout); rl.setAlpha(0.55f); rl.animate().alpha(1f).setDuration(260).start(); }
         boolean l = isLight();
         float dn = getResources().getDisplayMetrics().density;
         int bg = UiTheme.bg2(this), card = UiTheme.card(this), tx = UiTheme.tx(this);
@@ -570,5 +572,37 @@ public class MainActivity extends AppCompatActivity {
             + "s.setProperty('--sub','" + hex(UiTheme.sub(this)) + "');"
             + "s.setProperty('--ac','" + hex(UiTheme.acc(this)) + "');";
         w.evaluateJavascript(js, null);
+    }
+
+    void switchTo(Tab t) {
+        if (t == null || t == cur) return;
+        Tab old = cur;
+        if (t.wv.getParent() == null) container.addView(t.wv, new FrameLayout.LayoutParams(-1, -1));
+        t.wv.setVisibility(View.VISIBLE);
+        if (old != null && tabs.contains(old)) old.wv.setVisibility(View.INVISIBLE);
+        cur = t;
+        String u = t.wv.getUrl();
+        urlBar.setText(u == null || u.startsWith("file:///android_asset") ? "" : u);
+        progress.setVisibility(View.GONE);
+        btnTabs.setText(String.valueOf(tabs.size()));
+        applyTheme();
+        updateNav();
+    }
+
+    void closeTab(Tab t) {
+        int idx = tabs.indexOf(t);
+        if (idx < 0) return;
+        boolean wasCur = t == cur;
+        tabs.remove(t);
+        container.removeView(t.wv);
+        t.wv.destroy();
+        boolean anyIncog = false;
+        for (Tab x : tabs) if (x.incog) anyIncog = true;
+        if (!anyIncog && profilesSupported()) {
+            try { ProfileStore.getInstance().deleteProfile(PROFILE); } catch (Throwable e) { }
+        }
+        if (tabs.isEmpty()) { cur = null; newTab(false); }
+        else if (wasCur) { cur = null; switchTo(tabs.get(Math.max(0, idx - 1))); }
+        else btnTabs.setText(String.valueOf(tabs.size()));
     }
 }

@@ -75,10 +75,28 @@ public class SettingsActivity extends AppCompatActivity {
         return st;
     }
 
+    View rootView;
+    ScrollView svRef;
+    int sy;
+
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         UiTheme.apply(this);
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(UiTheme.bg2(this)));
+        build(false);
+    }
+
+    void rebuild() {
+        if (svRef != null) sy = svRef.getScrollY();
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(UiTheme.bg2(this)));
+        rootView.animate().alpha(0f).setDuration(130).withEndAction(() -> {
+            UiTheme.apply(this);
+            build(true);
+        }).start();
+    }
+
+    void build(boolean fade) {
         int tx = UiTheme.tx(this), acc = UiTheme.acc(this);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -97,7 +115,8 @@ public class SettingsActivity extends AppCompatActivity {
         hr.addView(tv("Settings", 26, tx, true), lp(-2, -2, 4, 0, 0, 0));
         root.addView(hr);
 
-        ScrollView sv = new ScrollView(this);
+        final ScrollView sv = new ScrollView(this);
+        svRef = sv;
         sv.setVerticalScrollBarEnabled(false);
         sv.setOverScrollMode(View.OVER_SCROLL_NEVER);
         c = new LinearLayout(this);
@@ -105,12 +124,11 @@ public class SettingsActivity extends AppCompatActivity {
         c.setPadding(dp(16), dp(4), dp(16), dp(28));
         sv.addView(c);
         root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
-        setContentView(root);
 
         LinearLayout g1 = group("App theme (poore app ke liye)");
         LinearLayout pk = new LinearLayout(this);
         pk.setPadding(dp(14), dp(0), dp(14), dp(16));
-        pk.addView(ThemePicker.build(this, () -> recreate()), new LinearLayout.LayoutParams(-1, -2));
+        pk.addView(ThemePicker.build(this, () -> rebuild()), new LinearLayout.LayoutParams(-1, -2));
         g1.addView(pk);
 
         LinearLayout g2 = group("Browsing");
@@ -140,5 +158,13 @@ public class SettingsActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cancel", null).show());
         row(g3, R.drawable.ic_m_info, 0xFF8E5CFF, "About MT Browser", "Version 8.0 • Fast, Safe, Smart", null, null);
+
+        setContentView(root);
+        rootView = root;
+        if (fade) {
+            root.setAlpha(0f);
+            root.animate().alpha(1f).setDuration(220).start();
+            if (sy > 0) sv.post(() -> sv.scrollTo(0, sy));
+        }
     }
 }
