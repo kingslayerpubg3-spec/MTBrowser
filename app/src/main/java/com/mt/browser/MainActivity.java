@@ -666,14 +666,14 @@ public class MainActivity extends AppCompatActivity {
         float dn = getResources().getDisplayMetrics().density;
         if (dlFab == null) {
             dlFab = new ImageView(this);
-            dlFab.setImageResource(R.drawable.ic_m_download);
-            dlFab.setColorFilter(0xFFFFFFFF);
+            dlFab.setImageResource(R.drawable.ic_dl_line);
+            dlFab.setColorFilter(null);
             int p = (int) (13 * dn);
             dlFab.setPadding(p, p, p, p);
             android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable(
                     android.graphics.drawable.GradientDrawable.Orientation.TL_BR, new int[]{UiTheme.acc(this), UiTheme.acc2(this)});
             g.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-            dlFab.setBackground(g);
+            dlFab.setBackground(null);
             dlFab.setElevation(10 * dn);
             dlFab.setOnClickListener(x -> onDlFab());
             MenuSheet.press(dlFab);
@@ -682,7 +682,7 @@ public class MainActivity extends AppCompatActivity {
             lp.setMargins(0, 0, (int) (16 * dn), (int) (150 * dn));
             ((ViewGroup) getWindow().getDecorView()).addView(dlFab, lp);
         }
-        { FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) dlFab.getLayoutParams(); fl.gravity = android.view.Gravity.TOP | android.view.Gravity.END; fl.setMargins(0, (int) (28 * dn), (int) (28 * dn), 0); dlFab.setLayoutParams(fl); }
+        { FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) dlFab.getLayoutParams(); fl.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.END; fl.setMargins(0, 0, (int) (84 * dn), (int) (40 * dn)); dlFab.setLayoutParams(fl); }
         if (dlFab.getVisibility() != View.VISIBLE) {
             dlFab.setVisibility(View.VISIBLE);
             dlFab.setScaleX(0f);
