@@ -395,13 +395,14 @@ public class MainActivity extends AppCompatActivity {
             View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE); if (dlFab != null) dlFab.bringToFront();
+        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE); if (dlFab != null) dlFab.bringToFront(); updateDlFab();
     }
 
     void hideFull() {
         if (fullView == null) return;
         ((ViewGroup) getWindow().getDecorView()).removeView(fullView);
         fullView = null;
+        updateDlFab();
         if (fullCb != null) fullCb.onCustomViewHidden();
         fullCb = null;
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
@@ -656,7 +657,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void updateDlFab() {
-        boolean has = cur != null && (cur.vplaying || !cur.sniffed.isEmpty());
+        boolean has = fullView != null && cur != null;
         if (has) showDlFab();
         else if (dlFab != null) dlFab.setVisibility(View.GONE);
     }
@@ -681,6 +682,7 @@ public class MainActivity extends AppCompatActivity {
             lp.setMargins(0, 0, (int) (16 * dn), (int) (150 * dn));
             ((ViewGroup) getWindow().getDecorView()).addView(dlFab, lp);
         }
+        { FrameLayout.LayoutParams fl = (FrameLayout.LayoutParams) dlFab.getLayoutParams(); fl.gravity = android.view.Gravity.TOP | android.view.Gravity.END; fl.setMargins(0, (int) (28 * dn), (int) (28 * dn), 0); dlFab.setLayoutParams(fl); }
         if (dlFab.getVisibility() != View.VISIBLE) {
             dlFab.setVisibility(View.VISIBLE);
             dlFab.setScaleX(0f);
