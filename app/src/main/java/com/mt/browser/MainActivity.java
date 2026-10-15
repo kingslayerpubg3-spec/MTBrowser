@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
         container = findViewById(R.id.webContainer);
+        BrowserHooks.addPull(this, container);
         urlBar = findViewById(R.id.urlBar);
         progress = findViewById(R.id.progress);
         btnTabs = findViewById(R.id.btnTabs);
@@ -88,6 +89,9 @@ public class MainActivity extends AppCompatActivity {
 
         WebSettings s = w.getSettings();
         s.setJavaScriptEnabled(true);
+        s.setSupportMultipleWindows(true);
+        s.setGeolocationEnabled(true);
+        s.setTextZoom(Prefs.textZoom(MainActivity.this));
         s.setDomStorageEnabled(true);
         s.setBuiltInZoomControls(true);
         s.setDisplayZoomControls(false);
@@ -95,18 +99,25 @@ public class MainActivity extends AppCompatActivity {
         if (incog) s.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         w.setWebViewClient(new WebViewClient() {
+            @Override public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) { BrowserHooks.error(MainActivity.this, v, r, e); }
+            @Override public void onReceivedSslError(WebView v, SslErrorHandler h, android.net.http.SslError e) { BrowserHooks.ssl(MainActivity.this, h, e); }
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) { return (Prefs.adBlock(MainActivity.this) && AdBlock.isAd(r.getUrl().getHost())) ? new WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0])) : null; }
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return handleInternal(r.getUrl().toString()); }
             @Override public void onPageStarted(WebView v, String u, Bitmap f) {
-                if (t == cur) urlBar.setText(u.startsWith("file:///android_asset") ? "" : u);
+                if (t == cur) { urlBar.setText(u.startsWith("file:///android_asset") ? "" : u); BrowserHooks.lock(urlBar, u); }
             }
             @Override public void onPageFinished(WebView v, String u) {
+                BrowserHooks.stopPull();
                 String ti = v.getTitle(); updateNav(); webTheme(v);
                 if (ti != null && !ti.isEmpty()) t.title = ti;
                 if (!t.incog) Store.addHistory(MainActivity.this, t.title, u);
             }
         });
         w.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) { return BrowserHooks.fileChooser(MainActivity.this, cb, p); }
+            @Override public boolean onCreateWindow(WebView v, boolean dlg, boolean gesture, android.os.Message m) { return BrowserHooks.createWindow(MainActivity.this, gesture, m); }
+            @Override public void onPermissionRequest(PermissionRequest r) { runOnUiThread(() -> BrowserHooks.permission(MainActivity.this, r)); }
+            @Override public void onGeolocationPermissionsShowPrompt(String o, GeolocationPermissions.Callback cb) { BrowserHooks.geo(MainActivity.this, o, cb); }
             @Override public void onShowCustomView(View view, CustomViewCallback cb) { showFull(view, cb); }
             @Override public void onHideCustomView() { hideFull(); }
             @Override public void onProgressChanged(WebView v, int p) {
@@ -125,6 +136,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Downloading: " + name, Toast.LENGTH_SHORT).show();
         });
 
+        w.setOnLongClickListener(v -> BrowserHooks.longPress(MainActivity.this, (WebView) v));
         t.wv = w;
         tabs.add(t);
         switchTo(t);
@@ -138,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
         t.wv.onResume();
         cur = t;
         String u = t.wv.getUrl();
-        urlBar.setText(u == null || u.startsWith("file:///android_asset") ? "" : u);
+        urlBar.setText(u == null || u.startsWith("file:///android_asset") ? "" : u); BrowserHooks.lock(urlBar, u);
         progress.setVisibility(View.GONE);
         btnTabs.setText(String.valueOf(tabs.size()));
         applyTheme();
@@ -323,7 +335,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onResume() {
-        super.onResume();
+        super.onResume(); BrowserHooks.zoom(MainActivity.this);
         if (cur != null) applyTheme();
     }
 
@@ -471,7 +483,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     boolean handleInternal(String u) {
-        if (u == null || !u.startsWith("mt://")) return false;
+        if (u == null) return false; if (!u.startsWith("mt://")) return BrowserHooks.external(this, u);
         String m = u.substring(5);
         if (m.startsWith("bookmarks")) openLib("bookmarks");
         else if (m.startsWith("history")) openLib("history");
@@ -490,6 +502,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int rc, int res, android.content.Intent d) {
         super.onActivityResult(rc, res, d);
+        BrowserHooks.onResult(rc, res, d);
         if (rc == 77 && res == RESULT_OK && d != null && d.getStringExtra("url") != null)
             cur.wv.loadUrl(d.getStringExtra("url"));
     }
@@ -582,7 +595,7 @@ public class MainActivity extends AppCompatActivity {
         if (old != null && tabs.contains(old)) old.wv.setVisibility(View.INVISIBLE);
         cur = t;
         String u = t.wv.getUrl();
-        urlBar.setText(u == null || u.startsWith("file:///android_asset") ? "" : u);
+        urlBar.setText(u == null || u.startsWith("file:///android_asset") ? "" : u); BrowserHooks.lock(urlBar, u);
         progress.setVisibility(View.GONE);
         btnTabs.setText(String.valueOf(tabs.size()));
         applyTheme();
@@ -631,5 +644,11 @@ public class MainActivity extends AppCompatActivity {
     public void onWindowFocusChanged(boolean f) {
         super.onWindowFocusChanged(f);
         if (f && Prefs.clipCatch(this)) getWindow().getDecorView().post(this::checkClip);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int rc, String[] p, int[] g) {
+        super.onRequestPermissionsResult(rc, p, g);
+        BrowserHooks.onPerm(rc, g);
     }
 }
