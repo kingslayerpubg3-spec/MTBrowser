@@ -118,6 +118,7 @@ public class PlayerActivity extends AppCompatActivity {
         page = in.getStringExtra("page");
         startPos = (long) (in.getDoubleExtra("pos", 0) * 1000);
         if (name == null || name.isEmpty()) name = "Video";
+        if (in.getBooleanExtra("land", false)) { landscape = true; setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE); }
         if (url == null) { finish(); return; }
         am = (AudioManager) getSystemService(AUDIO_SERVICE);
         buildUi();

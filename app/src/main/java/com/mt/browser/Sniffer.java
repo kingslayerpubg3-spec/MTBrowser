@@ -27,6 +27,7 @@ public class Sniffer {
 
     static void reset(MainActivity a, MainActivity.Tab t) {
         t.sniffed.clear();
+        a.inlineStop(t, false);
         t.vurl = "";
         t.vtitle = "";
         t.vplaying = false;

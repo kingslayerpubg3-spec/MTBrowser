@@ -46,4 +46,25 @@ public class VideoBridge {
         a.runOnUiThread(() -> a.openPlayer(u, ti, p, t));
         return true;
     }
+
+    @JavascriptInterface
+    public boolean inline(String src, String title, double pos, double dur, double dpr, double l, double tp, double w, double h) {
+        if (!Prefs.builtinPlayer(a)) return false;
+        final java.util.ArrayList<String> c = a.candidates(t, src);
+        if (c.isEmpty()) return false;
+        final String ti = title;
+        final double p = pos, d = dur, dp = dpr, x = l, y = tp, ww = w, hh = h;
+        a.runOnUiThread(() -> a.inlineStart(t, c, ti, p, d, dp, x, y, ww, hh));
+        return true;
+    }
+
+    @JavascriptInterface
+    public void rect(double dpr, double l, double tp, double w, double h, boolean vis) {
+        final double dp = dpr, x = l, y = tp, ww = w, hh = h;
+        final boolean v = vis;
+        a.runOnUiThread(() -> a.inlineMove(t, dp, x, y, ww, hh, v));
+    }
+
+    @JavascriptInterface
+    public void vclose() { a.runOnUiThread(() -> a.inlineStop(t, false)); }
 }

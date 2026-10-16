@@ -236,6 +236,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        if (ip != null && ip.active) { ip.stop(true); return; }
         if (fullView != null) { hideFull(); return; }
         if (cur.wv.canGoBack()) cur.wv.goBack();
         else if (tabs.size() > 1) closeTab(cur);
@@ -581,6 +582,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void switchTo(Tab t) {
+        if (ip != null && t != cur) ip.stop(true);
         if (t == null || t == cur) return;
         Tab old = cur;
         if (t.wv.getParent() == null) container.addView(t.wv, new FrameLayout.LayoutParams(-1, -1));
@@ -815,5 +817,46 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         onDlFabV2();
+    }
+
+    InlinePlayer ip;
+
+    ArrayList<String> candidates(Tab t, String src) {
+        ArrayList<String> r = new ArrayList<>();
+        if (src != null && src.startsWith("http")) r.add(src);
+        synchronized (t.hlsList) {
+            for (String s : t.hlsList) if (s.toLowerCase().contains("master") && !r.contains(s)) r.add(s);
+            for (String s : t.hlsList) if (!r.contains(s)) r.add(s);
+        }
+        synchronized (t.sniffed) {
+            for (String s : t.sniffed) if (!r.contains(s)) r.add(s);
+        }
+        return r;
+    }
+
+    void inlineStart(Tab t, ArrayList<String> c, String title, double pos, double dur, double dpr, double l, double tp, double w, double h) {
+        if (t != cur) return;
+        if (ip == null) ip = new InlinePlayer(this, container);
+        ip.start(t, c, title, pos, dur, dpr, l, tp, w, h);
+    }
+
+    void inlineMove(Tab t, double dpr, double l, double tp, double w, double h, boolean vis) {
+        if (ip != null && ip.active && ip.tab == t) ip.move(dpr, l, tp, w, h, vis);
+    }
+
+    void inlineStop(Tab t, boolean rel) {
+        if (ip != null && ip.tab == t) ip.stop(rel);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (ip != null) ip.pause();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (ip != null) ip.resume();
     }
 }
