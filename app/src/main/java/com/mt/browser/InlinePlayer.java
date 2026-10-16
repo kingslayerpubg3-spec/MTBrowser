@@ -364,13 +364,25 @@ public class InlinePlayer {
         Qualities.show(a, cands.get(ci), cands, ua, page, du > 0 ? du / 1000.0 : expDur, title, player, this::playQ);
     }
 
-    void playQ(Qualities.Q q) {
+    void playQOld(Qualities.Q q) {
         if (player == null) return;
         if (q.auto) { Qualities.setHeight(player, 0); return; }
         if (q.hls) { Qualities.setHeight(player, q.height); return; }
         int ix = cands.indexOf(q.url);
         if (ix == ci) return;
         if (ix < 0) { cands.add(q.url); ix = cands.size() - 1; }
+        pos0 = player.getCurrentPosition();
+        ci = ix;
+        load();
+    }
+
+    void playQ(Qualities.Q q) {
+        if (player == null) return;
+        String nu = q.auto ? q.master : q.url;
+        if (nu == null || nu.isEmpty()) return;
+        int ix = cands.indexOf(nu);
+        if (ix == ci) return;
+        if (ix < 0) { cands.add(nu); ix = cands.size() - 1; }
         pos0 = player.getCurrentPosition();
         ci = ix;
         load();

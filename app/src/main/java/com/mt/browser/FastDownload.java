@@ -36,7 +36,8 @@ public class FastDownload {
         return String.format(Locale.US, "%02d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60);
     }
 
-    public static void show(final Activity a, final String url, String name0, final String ua) {
+    public static void show(final Activity a, final String url, String name0, final String ua, boolean skipQ) {
+        if (!skipQ && url.toLowerCase().contains(".m3u8")) { routeQ(a, url, name0, ua); return; }
         final BottomSheetDialog d = new BottomSheetDialog(a);
         final String[] name = {DownloadEngine.clean(name0)};
         final int tx = UiTheme.tx(a), sub = UiTheme.sub(a), acc = UiTheme.acc(a);
@@ -186,5 +187,18 @@ public class FastDownload {
                 if (fb != null) img.setImageBitmap(fb);
             });
         }).start();
+    }
+
+    public static void show(Activity a, String url, String name0, String ua) { show(a, url, name0, ua, false); }
+
+    static void routeQ(Activity a, String url, String name0, String ua) {
+        java.util.List<String> al = null;
+        if (a instanceof MainActivity) {
+            MainActivity m = (MainActivity) a;
+            if (m.cur != null) al = m.candidates(m.cur, null);
+        } else if (a instanceof PlayerActivity) {
+            al = ((PlayerActivity) a).alts;
+        }
+        Qualities.show(a, url, al, ua, DownloadEngine.refOf(a), 0, name0 == null ? "" : name0, null, null);
     }
 }

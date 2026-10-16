@@ -27,7 +27,7 @@ import java.util.List;
 
 public class Qualities {
     public static class Q {
-        public String label = "", note = "", url = "";
+        public String label = "", note = "", url = "", master = "";
         public int height;
         public long bw, size;
         public boolean hls, auto, sepAudio, est;
@@ -62,6 +62,7 @@ public class Qualities {
 
     static String nameFor(Q q, String title) {
         String t = (title == null ? "" : title).replaceAll("[\\\\/:*?\"<>|]", " ").trim();
+        t = t.replaceAll("(?i)\\.(mp4|ts|mkv|m3u8)$", "");
         if (t.length() > 80) t = t.substring(0, 80);
         if (t.isEmpty()) t = "Video";
         if (q.hls) return t + " " + q.label + ".mp4";
@@ -97,7 +98,7 @@ public class Qualities {
                         for (int j = i + 1; j < ls.length; j++) {
                             String s = ls[j].trim();
                             if (s.isEmpty() || s.startsWith("#")) continue;
-                            u = DownloadEngine.resolve(url, s);
+                            u = DownloadEngine.resolve(murl, s);
                             break;
                         }
                         if (u == null) continue;
@@ -106,7 +107,7 @@ public class Qualities {
                         if (ex != null && ex.bw >= bw) continue;
                         Q q = new Q();
                         q.hls = true;
-                        q.height = hh;
+                        q.master = murl; q.height = hh;
                         q.bw = bw;
                         q.url = u;
                         q.sepAudio = DownloadEngine.attr(ls[i], "AUDIO") != null;
@@ -239,8 +240,8 @@ public class Qualities {
                 if (!d.isShowing()) return;
                 if (list.size() == 1) {
                     d.dismiss();
-                    Q q = list.get(0);
-                    FastDownload.show(a, q.url, nameFor(q, title), ua);
+                    Q q = list.get(0); if (q.hls) android.widget.Toast.makeText(a, "Is video ki sirf ek hi quality mili", android.widget.Toast.LENGTH_LONG).show();
+                    FastDownload.show(a, q.url, nameFor(q, title), ua, true);
                     return;
                 }
                 root.removeView(wait);
@@ -259,7 +260,7 @@ public class Qualities {
             Q au = new Q();
             au.auto = true;
             au.hls = true;
-            au.label = "Auto";
+            au.label = "Auto"; au.master = list.get(0).master;
             au.note = "Network ke hisaab se best quality";
             list.add(0, au);
         }
@@ -283,7 +284,7 @@ public class Qualities {
                 sb.append(q.size > 0 ? (q.est ? "~" : "") + DownloadsActivity.size(q.size) : (q.hls ? "HD stream" : "Size pata nahi"));
                 if (q.sepAudio) sb.append("  •  awaaz alag stream me");
             }
-            boolean playing = !q.auto && ((q.hls && vf != null && q.height > 0 && q.height == vf.height) || (!q.hls && q.url.equals(url)));
+            boolean playing = !q.auto && (q.url.equals(url) || (q.hls && vf != null && q.height > 0 && q.height == vf.height));
             if (playing) sb.append("  •  Playing");
             TextView sTv = tv(a, sb.toString(), 12, sub, false);
             sTv.setPadding(0, dp(a, 3), 0, 0);
@@ -299,7 +300,7 @@ public class Qualities {
             }
             if (!q.auto) {
                 ImageView dl = circle(a, R.drawable.ic_m_download, UiTheme.chip(a), acc);
-                dl.setOnClickListener(v -> { d.dismiss(); FastDownload.show(a, q.url, nameFor(q, title), ua); });
+                dl.setOnClickListener(v -> { d.dismiss(); FastDownload.show(a, q.url, nameFor(q, title), ua, true); });
                 LinearLayout.LayoutParams dp2 = new LinearLayout.LayoutParams(dp(a, 44), dp(a, 44));
                 dp2.setMargins(dp(a, 8), 0, 0, 0);
                 row.addView(dl, dp2);
@@ -310,5 +311,38 @@ public class Qualities {
             rp.bottomMargin = dp(a, 8);
             box.addView(row, rp);
         }
+    }
+
+    static String[] findMaster(String url, List<String> alts, DownloadEngine.Item hit) {
+        ArrayList<String> tr = new ArrayList<>();
+        if (alts != null) for (String s : alts)
+            if (s != null && s.toLowerCase().contains(".m3u8") && !s.equals(url) && !tr.contains(s)) tr.add(s);
+        try {
+            java.net.URL u = new java.net.URL(url);
+            String path = u.getPath();
+            int i = path.lastIndexOf('/');
+            String dir = i >= 0 ? path.substring(0, i + 1) : "/";
+            String root = u.getProtocol() + "://" + u.getHost() + (u.getPort() > 0 ? ":" + u.getPort() : "");
+            String up = dir.length() > 1 ? dir.substring(0, dir.lastIndexOf('/', dir.length() - 2) + 1) : dir;
+            String[] names = {"master.m3u8", "playlist.m3u8", "index.m3u8", "main.m3u8"};
+            for (String n : names) {
+                String a1 = root + dir + n, a2 = root + up + n;
+                if (!a1.equals(url) && !tr.contains(a1)) tr.add(a1);
+                if (!a2.equals(url) && !tr.contains(a2)) tr.add(a2);
+            }
+        } catch (Exception e) { }
+        int tries = 0;
+        for (String c : tr) {
+            if (tries++ > 10) break;
+            try {
+                DownloadEngine.Item t = new DownloadEngine.Item();
+                t.url = c;
+                t.ua = hit.ua;
+                t.ref = hit.ref;
+                String pl = new String(DownloadEngine.getBytes(t, c, null), "UTF-8");
+                if (pl.contains("#EXT-X-STREAM-INF")) return new String[]{c, pl};
+            } catch (Exception e) { }
+        }
+        return null;
     }
 }

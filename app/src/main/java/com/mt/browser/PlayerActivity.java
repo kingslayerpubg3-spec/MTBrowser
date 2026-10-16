@@ -611,7 +611,7 @@ public class PlayerActivity extends AppCompatActivity {
         Qualities.show(this, url, alts, ua, page, du > 0 ? du / 1000.0 : 0, name, player, this::playQ);
     }
 
-    void playQ(Qualities.Q q) {
+    void playQOld(Qualities.Q q) {
         if (player == null) return;
         if (q.auto) { Qualities.setHeight(player, 0); osd("Auto quality"); return; }
         if (q.hls) { Qualities.setHeight(player, q.height); osd("Quality: " + q.label); return; }
@@ -623,5 +623,19 @@ public class PlayerActivity extends AppCompatActivity {
         player.prepare();
         player.play();
         osd("Quality: " + q.label);
+    }
+
+    void playQ(Qualities.Q q) {
+        if (player == null) return;
+        String nu = q.auto ? q.master : q.url;
+        if (nu == null || nu.isEmpty()) { if (q.auto) Qualities.setHeight(player, 0); return; }
+        if (nu.equals(url)) { if (q.auto) Qualities.setHeight(player, 0); return; }
+        long p = player.getCurrentPosition();
+        url = nu;
+        player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url))
+                .setMimeType(url.toLowerCase().contains(".m3u8") ? MimeTypes.APPLICATION_M3U8 : null).build(), p);
+        player.prepare();
+        player.play();
+        osd(q.auto ? "Auto quality" : "Quality: " + q.label);
     }
 }
