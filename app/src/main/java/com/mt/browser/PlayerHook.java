@@ -36,7 +36,7 @@ public class PlayerHook {
                 w.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}})", null);
                 cb.onCustomViewHidden();
                 Intent i = new Intent(a, PlayerActivity.class);
-                i.putExtra("url", bu); i.putExtra("land", true);
+                i.putExtra("url", bu); { java.util.ArrayList<String> al = a.candidates(a.cur, null); i.putExtra("alts", al.toArray(new String[0])); } i.putExtra("land", true);
                 i.putExtra("name", n);
                 i.putExtra("pos", t);
                 i.putExtra("ua", w.getSettings().getUserAgentString());

@@ -310,7 +310,7 @@ public class InlinePlayer {
         seek.setSecondaryProgress(d > 0 ? (int) (player.getBufferedPosition() * 10000 / d) : 0);
     }
 
-    void download() {
+    void downloadOld() {
         if (ci >= cands.size()) return;
         String u = cands.get(ci);
         FastDownload.show(a, u, a.nameFor(u, title), ua);
@@ -324,6 +324,7 @@ public class InlinePlayer {
         player.pause();
         Intent i = new Intent(a, PlayerActivity.class);
         i.putExtra("url", cands.get(ci));
+        i.putExtra("alts", cands.toArray(new String[0]));
         i.putExtra("name", title.isEmpty() ? "Video" : title);
         i.putExtra("pos", p / 1000.0);
         i.putExtra("ua", ua);
@@ -355,5 +356,23 @@ public class InlinePlayer {
         if (releaseJs && t != null && t.wv != null) {
             try { t.wv.evaluateJavascript("window.__mtrel&&window.__mtrel()", null); } catch (Exception e) { }
         }
+    }
+
+    void download() {
+        if (player == null || ci >= cands.size()) return;
+        long du = player.getDuration();
+        Qualities.show(a, cands.get(ci), cands, ua, page, du > 0 ? du / 1000.0 : expDur, title, player, this::playQ);
+    }
+
+    void playQ(Qualities.Q q) {
+        if (player == null) return;
+        if (q.auto) { Qualities.setHeight(player, 0); return; }
+        if (q.hls) { Qualities.setHeight(player, q.height); return; }
+        int ix = cands.indexOf(q.url);
+        if (ix == ci) return;
+        if (ix < 0) { cands.add(q.url); ix = cands.size() - 1; }
+        pos0 = player.getCurrentPosition();
+        ci = ix;
+        load();
     }
 }

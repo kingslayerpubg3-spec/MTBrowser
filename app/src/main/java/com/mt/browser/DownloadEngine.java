@@ -696,4 +696,16 @@ public class DownloadEngine {
             save();
         }
     }
+
+    public static void redownload(Context c, Item old) {
+        init(c);
+        Item it = new Item();
+        it.id = System.currentTimeMillis();
+        it.name = old.name;
+        it.url = old.url;
+        it.ua = old.ua;
+        it.ref = old.ref;
+        synchronized (DownloadEngine.class) { items.add(0, it); }
+        resume(it);
+    }
 }

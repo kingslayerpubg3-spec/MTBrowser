@@ -803,6 +803,7 @@ public class MainActivity extends AppCompatActivity {
             i.putExtra("pos", pos);
             i.putExtra("ua", t.wv.getSettings().getUserAgentString());
             i.putExtra("page", t.wv.getUrl());
+            i.putExtra("alts", candidates(t, null).toArray(new String[0]));
             startActivity(i);
         } catch (Exception e) { }
     }

@@ -67,6 +67,8 @@ public class PlayerActivity extends AppCompatActivity {
     SeekBar seek;
     ProgressBar spin;
     String url, name, ua, page;
+    TextView qTv;
+    java.util.ArrayList<String> alts = new java.util.ArrayList<>();
     boolean locked, shown = true, dragging, landscape = false, loop, noPip;
     int resize = 0, gMode;
     long startPos, lastRx = -1, lastTs, gPos, gTarget;
@@ -116,6 +118,8 @@ public class PlayerActivity extends AppCompatActivity {
         name = in.getStringExtra("name");
         ua = in.getStringExtra("ua");
         page = in.getStringExtra("page");
+        String[] al0 = in.getStringArrayExtra("alts");
+        if (al0 != null) for (String s0 : al0) alts.add(s0);
         startPos = (long) (in.getDoubleExtra("pos", 0) * 1000);
         if (name == null || name.isEmpty()) name = "Video";
         if (in.getBooleanExtra("land", false)) { landscape = true; setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE); }
@@ -226,6 +230,7 @@ public class PlayerActivity extends AppCompatActivity {
         bottom.addView(r1, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout r2 = new LinearLayout(this);
         r2.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        qTv = text("Auto", 15, true); qTv.setPadding(dp(12), dp(10), dp(12), dp(10)); r2.addView(qTv, new LinearLayout.LayoutParams(-2, -2));
         speedTv = text("1.0X", 16, true);
         speedTv.setPadding(dp(14), dp(10), dp(14), dp(10));
         r2.addView(speedTv, new LinearLayout.LayoutParams(-2, -2));
@@ -259,8 +264,9 @@ public class PlayerActivity extends AppCompatActivity {
         lockBtn.setOnClickListener(v -> toggleLock());
         moreBtn.setOnClickListener(v -> showMore());
         speedTv.setOnClickListener(v -> pickSpeed());
+        qTv.setOnClickListener(v -> quality());
         pipBtn.setOnClickListener(v -> enterPip());
-        dlBtn.setOnClickListener(v -> download());
+        dlBtn.setOnClickListener(v -> quality());
         rotBtn.setOnClickListener(v -> rotate());
         seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onProgressChanged(SeekBar s, int p, boolean u) {
@@ -401,6 +407,7 @@ public class PlayerActivity extends AppCompatActivity {
             seek.setProgress(d > 0 ? (int) (p * 10000 / d) : 0);
         }
         durT.setText(fmt(d));
+        { androidx.media3.common.Format vf = player.getVideoFormat(); if (vf != null && vf.height > 0) qTv.setText(vf.height + "p"); }
         seek.setSecondaryProgress(d > 0 ? (int) (player.getBufferedPosition() * 10000 / d) : 0);
         long now = System.currentTimeMillis();
         if (now - lastTs >= 1000) {
@@ -594,5 +601,27 @@ public class PlayerActivity extends AppCompatActivity {
     public void finish() {
         super.finish();
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+    }
+
+    void quality() {
+        if (player == null) return;
+        if (!url.startsWith("http")) { Toast.makeText(this, "Ye file pehle se phone me hai", Toast.LENGTH_SHORT).show(); return; }
+        if (url.toLowerCase().contains(".mpd")) { Toast.makeText(this, "Is stream ka download nahi hota", Toast.LENGTH_SHORT).show(); return; }
+        long du = player.getDuration();
+        Qualities.show(this, url, alts, ua, page, du > 0 ? du / 1000.0 : 0, name, player, this::playQ);
+    }
+
+    void playQ(Qualities.Q q) {
+        if (player == null) return;
+        if (q.auto) { Qualities.setHeight(player, 0); osd("Auto quality"); return; }
+        if (q.hls) { Qualities.setHeight(player, q.height); osd("Quality: " + q.label); return; }
+        if (q.url.equals(url)) return;
+        long p = player.getCurrentPosition();
+        url = q.url;
+        player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url))
+                .setMimeType(url.toLowerCase().contains(".m3u8") ? MimeTypes.APPLICATION_M3U8 : null).build(), p);
+        player.prepare();
+        player.play();
+        osd("Quality: " + q.label);
     }
 }

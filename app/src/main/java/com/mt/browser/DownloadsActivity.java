@@ -32,6 +32,7 @@ public class DownloadsActivity extends AppCompatActivity {
     final Handler h = new Handler(Looper.getMainLooper());
     final HashMap<Long, Holder> holders = new HashMap<>();
     int uiVer;
+    int lastTx, lastTy;
     String sig = "";
     LinearLayout list;
     ScrollView sv;
@@ -364,7 +365,8 @@ public class DownloadsActivity extends AppCompatActivity {
         row.addView(act, new LinearLayout.LayoutParams(dp(44), dp(44)));
         hd.act = act;
         row.setOnClickListener(v -> { if (it.status == DONE) open(it); });
-        row.setOnLongClickListener(v -> { options(it); return true; });
+        row.setOnTouchListener((v, e) -> { lastTx = (int) e.getRawX(); lastTy = (int) e.getRawY(); return false; });
+        row.setOnLongClickListener(v -> { options(it, v); return true; });
         holders.put(it.id, hd);
         update(it, hd);
         return row;
@@ -376,7 +378,7 @@ public class DownloadsActivity extends AppCompatActivity {
         render(true);
     }
 
-    void options(final Item it) {
+    void optionsOld(final Item it) {
         if (it.status == DONE) {
             new AlertDialog.Builder(this).setTitle(it.name)
                 .setItems(new String[]{"Remove from list", "Delete file too", "Rename", "Fix file type (auto)"},
@@ -467,5 +469,117 @@ public class DownloadsActivity extends AppCompatActivity {
                 if (it.status == DONE && DownloadEngine.needsExt(it.name) && DownloadEngine.fixExt(it)) ch = true;
             if (ch) runOnUiThread(() -> render(true));
         }).start();
+    }
+
+    void options(final Item it, View anchor) {
+        final android.widget.PopupWindow pw = new android.widget.PopupWindow(this);
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(6), dp(8), dp(6), dp(8));
+        box.setBackground(bg(UiTheme.card(this), UiTheme.stroke(this), 20));
+        ArrayList<String> names = new ArrayList<>();
+        final ArrayList<Integer> ids = new ArrayList<>();
+        if (it.status == DONE) {
+            names.add("Rename"); ids.add(0);
+            names.add("Open Folder"); ids.add(1);
+            names.add("Re-Download"); ids.add(2);
+            names.add("Details"); ids.add(3);
+            names.add("Delete"); ids.add(4);
+        } else {
+            names.add(it.status == ACTIVE ? "Pause" : it.status == PAUSED ? "Resume" : "Retry"); ids.add(5);
+            names.add("Details"); ids.add(3);
+            names.add("Cancel"); ids.add(6);
+        }
+        for (int i = 0; i < names.size(); i++) {
+            final int act = ids.get(i);
+            boolean red = act == 4 || act == 6;
+            TextView t = tv(names.get(i), 16, red ? 0xFFEF4444 : UiTheme.tx(this), false);
+            t.setPadding(dp(18), dp(13), dp(18), dp(13));
+            t.setOnClickListener(v -> { pw.dismiss(); doAct(it, act); });
+            box.addView(t, new LinearLayout.LayoutParams(-1, -2));
+        }
+        pw.setContentView(box);
+        pw.setWidth(dp(210));
+        pw.setHeight(-2);
+        pw.setFocusable(true);
+        pw.setOutsideTouchable(true);
+        pw.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+        pw.setElevation(dp(12));
+        box.measure(View.MeasureSpec.makeMeasureSpec(dp(210), View.MeasureSpec.EXACTLY), View.MeasureSpec.UNSPECIFIED);
+        int w = dp(210), hg = box.getMeasuredHeight();
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        int x = Math.max(dp(12), Math.min(lastTx - w / 2, dm.widthPixels - w - dp(12)));
+        int y = Math.max(dp(40), Math.min(lastTy - hg / 2, dm.heightPixels - hg - dp(48)));
+        pw.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y);
+        box.setAlpha(0f);
+        box.setScaleX(0.92f);
+        box.setScaleY(0.92f);
+        box.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(150).start();
+    }
+
+    void doAct(final Item it, int act) {
+        switch (act) {
+            case 0: doRename(it); break;
+            case 1: openFolder(); break;
+            case 2:
+                DownloadEngine.redownload(this, it);
+                Toast.makeText(this, "Download shuru ho gaya", Toast.LENGTH_SHORT).show();
+                render(true);
+                break;
+            case 3: details(it); break;
+            case 4: doDelete(it); break;
+            case 5: primary(it); break;
+            case 6: DownloadEngine.remove(it, false); render(true); break;
+        }
+    }
+
+    void doRename(final Item it) {
+        final EditText e = new EditText(this);
+        e.setText(it.name);
+        e.setSelectAllOnFocus(true);
+        new AlertDialog.Builder(this).setTitle("Rename").setView(e)
+            .setPositiveButton("OK", (d, k) -> {
+                String s = e.getText().toString().trim();
+                int dot = it.name.lastIndexOf('.');
+                if (!s.isEmpty() && s.indexOf('.') < 0 && dot > 0) s += it.name.substring(dot);
+                if (!s.isEmpty() && !DownloadEngine.rename(it, s))
+                    Toast.makeText(this, "Rename nahi hua", Toast.LENGTH_SHORT).show();
+                render(true);
+            }).setNegativeButton("Cancel", null).show();
+    }
+
+    void openFolder() {
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload%2FMT%20Browser"),
+                    "vnd.android.document/directory");
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            try { startActivity(new Intent(DownloadManager.ACTION_VIEW_DOWNLOADS)); }
+            catch (Exception x) { Toast.makeText(this, "Files app nahi khula", Toast.LENGTH_SHORT).show(); }
+        }
+    }
+
+    void details(final Item it) {
+        String st = it.status == DONE ? "Completed" : it.status == ACTIVE ? "Downloading" : it.status == PAUSED ? "Paused" : "Failed";
+        String dt = new java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(new java.util.Date(it.id));
+        String where = (it.uri != null && it.uri.startsWith("file:")) ? Uri.parse(it.uri).getPath() : "Download/MT Browser";
+        String msg = "Name: " + it.name + "\nSize: " + size(it.total > 0 ? it.total : it.done) + "\nStatus: " + st
+                + "\nDate: " + dt + "\nFolder: " + where + "\nSource: " + (it.url == null || it.url.isEmpty() ? "-" : it.url);
+        new AlertDialog.Builder(this).setTitle("Details").setMessage(msg)
+            .setPositiveButton("OK", null)
+            .setNeutralButton("Copy link", (d, w) -> {
+                android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("MT", it.url));
+                Toast.makeText(this, "Link copy ho gaya", Toast.LENGTH_SHORT).show();
+            }).show();
+    }
+
+    void doDelete(final Item it) {
+        new AlertDialog.Builder(this).setTitle("Delete?").setMessage(it.name)
+            .setPositiveButton("Delete file", (d, w) -> { DownloadEngine.remove(it, true); render(true); })
+            .setNeutralButton("Sirf list se hatao", (d, w) -> { DownloadEngine.remove(it, false); render(true); })
+            .setNegativeButton("Cancel", null).show();
     }
 }
