@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         w.setWebChromeClient(new WebChromeClient() {
-            @Override public void onShowCustomView(View view, CustomViewCallback cb) { showFull(view, cb); }
+            @Override public void onShowCustomView(View view, CustomViewCallback cb) { PlayerHook.enter(MainActivity.this, view, cb); }
             @Override public void onHideCustomView() { hideFull(); }
             @Override public void onProgressChanged(WebView v, int p) {
                 if (t != cur) return;

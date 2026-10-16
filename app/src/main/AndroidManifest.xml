@@ -29,5 +29,6 @@
         <activity android:name=".SettingsActivity" android:exported="false" />
         <activity android:name=".DownloadsActivity" android:exported="false" />
     <service android:name=".DownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
+        <activity android:name=".PlayerActivity" android:exported="false" android:supportsPictureInPicture="true" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|layoutDirection" />
     </application>
 </manifest>
