@@ -81,6 +81,11 @@ public class Qualities {
                 hit.ua = ua == null ? "" : ua;
                 hit.ref = ref == null ? "" : ref;
                 String pl = new String(DownloadEngine.getBytes(hit, url, null), "UTF-8");
+                String murl = url;
+                if (!pl.contains("#EXT-X-STREAM-INF")) {
+                    String[] mm = findMaster(url, alts, hit);
+                    if (mm != null) { murl = mm[0]; pl = mm[1]; }
+                }
                 if (pl.contains("#EXT-X-STREAM-INF")) {
                     String[] ls = pl.split("\\r?\\n");
                     HashMap<Integer, Q> by = new HashMap<>();
