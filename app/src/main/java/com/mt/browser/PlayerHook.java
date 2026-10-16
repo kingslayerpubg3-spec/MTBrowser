@@ -16,6 +16,7 @@ public class PlayerHook {
         + "return JSON.stringify({u:b.currentSrc||b.src||'',t:b.currentTime||0,n:document.title||''});})()";
 
     static void enter(final MainActivity a, final View view, final WebChromeClient.CustomViewCallback cb) {
+        if (!Prefs.builtinPlayer(a)) { a.showFull(view, cb); return; }
         if (a.cur == null) { a.showFull(view, cb); return; }
         final WebView w = a.cur.wv;
         w.evaluateJavascript(JS, r -> {

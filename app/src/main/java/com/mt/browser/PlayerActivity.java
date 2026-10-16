@@ -67,14 +67,14 @@ public class PlayerActivity extends AppCompatActivity {
     SeekBar seek;
     ProgressBar spin;
     String url, name, ua, page;
-    boolean locked, shown = true, dragging, landscape = true, loop, noPip;
+    boolean locked, shown = true, dragging, landscape = false, loop, noPip;
     int resize = 0, gMode;
     long startPos, lastRx = -1, lastTs, gPos, gTarget;
     float gBright, gVol;
     AudioManager am;
     GestureDetector gd;
     final Handler h = new Handler(Looper.getMainLooper());
-    final Runnable updR = new Runnable() { public void run() { update(); h.postDelayed(this, 500); } };
+    final Runnable updR = new Runnable() { public void run() { update(); h.postDelayed(this, 250); } };
     final Runnable hideR = new Runnable() { public void run() { if (!dragging) setCtrlVisible(false); } };
     final Runnable osdHide = new Runnable() { public void run() { osd.setVisibility(View.GONE); } };
 
@@ -106,10 +106,11 @@ public class PlayerActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (Build.VERSION.SDK_INT >= 28)
             getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
         Intent in = getIntent();
         url = in.getStringExtra("url");
         name = in.getStringExtra("name");
@@ -134,7 +135,7 @@ public class PlayerActivity extends AppCompatActivity {
                 .setAllowCrossProtocolRedirects(true)
                 .setDefaultRequestProperties(hd);
         if (ua != null && !ua.isEmpty()) hf.setUserAgent(ua);
-        player = new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(hf)).build();
+        player = new ExoPlayer.Builder(this, new androidx.media3.exoplayer.DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setLoadControl(new androidx.media3.exoplayer.DefaultLoadControl.Builder().setBufferDurationsMs(25000, 80000, 1500, 3000).build()).setMediaSourceFactory(new DefaultMediaSourceFactory(hf)).build(); player.setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC);
         pv.setPlayer(player);
         if (startPos == 0) startPos = getSharedPreferences("mt", 0).getLong("pp_" + url.hashCode(), 0);
         player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url)).setMimeType(url.toLowerCase().contains(".m3u8") ? MimeTypes.APPLICATION_M3U8 : null).build());
@@ -305,7 +306,7 @@ public class PlayerActivity extends AppCompatActivity {
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
     }
 
-    void setCtrlVisible(boolean v) {
+    void setCtrlVisibleOld(boolean v) {
         shown = v;
         if (v) ctrl.setVisibility(View.VISIBLE);
         ctrl.animate().alpha(v ? 1f : 0f).setDuration(180).withEndAction(() -> { if (!shown) ctrl.setVisibility(View.GONE); }).start();
@@ -318,7 +319,7 @@ public class PlayerActivity extends AppCompatActivity {
 
     void osd(String s) {
         osd.setText(s);
-        osd.setVisibility(View.VISIBLE);
+        osd.setVisibility(View.VISIBLE); osd.setAlpha(0f); osd.animate().alpha(1f).setDuration(120).start();
         h.removeCallbacks(osdHide);
         h.postDelayed(osdHide, 900);
     }
@@ -578,5 +579,19 @@ public class PlayerActivity extends AppCompatActivity {
         h.removeCallbacksAndMessages(null);
         if (player != null) { player.release(); player = null; }
         super.onDestroy();
+    }
+
+    void setCtrlVisible(boolean v) {
+        shown = v;
+        if (v) ctrl.setVisibility(View.VISIBLE);
+        ctrl.animate().alpha(v ? 1f : 0f).setDuration(220).withEndAction(() -> { if (!shown) ctrl.setVisibility(View.GONE); }).start();
+        top.animate().translationY(v ? 0f : -dp(14)).setDuration(220).start();
+        bottom.animate().translationY(v ? 0f : dp(14)).setDuration(220).start();
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 }
