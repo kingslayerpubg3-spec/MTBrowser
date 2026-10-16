@@ -31,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
         String vurl = "", vtitle = "";
         boolean vplaying, hls;
         final java.util.Set<String> sniffed = java.util.Collections.synchronizedSet(new java.util.LinkedHashSet<String>());
+        final java.util.List<String> hlsList = java.util.Collections.synchronizedList(new java.util.ArrayList<String>());
         android.graphics.Bitmap thumb;
     }
 
@@ -695,7 +696,7 @@ public class MainActivity extends AppCompatActivity {
     String nameFor(String url, String title) {
         String n = URLUtil.guessFileName(url, null, null);
         String l = n.toLowerCase();
-        boolean generic = l.endsWith(".bin") || !n.contains(".") || l.startsWith("download") || l.startsWith("videoplayback");
+        boolean generic = l.endsWith(".m3u8") || l.endsWith(".bin") || !n.contains(".") || l.startsWith("download") || l.startsWith("videoplayback");
         if (generic && title != null && !title.trim().isEmpty()) {
             String t = title.trim().replaceAll("[\\\\/:*?\"<>|]", " ");
             if (t.length() > 80) t = t.substring(0, 80);
@@ -734,7 +735,7 @@ public class MainActivity extends AppCompatActivity {
             .setItems(names, (d, i) -> FastDownload.show(MainActivity.this, urls.get(i), nameFor(urls.get(i), ti), ua)).show();
     }
 
-    void onDlFab() {
+    void onDlFabV2() {
         final Tab t = cur;
         if (t == null) return;
         final String ua = t.wv.getSettings().getUserAgentString();
@@ -777,5 +778,42 @@ public class MainActivity extends AppCompatActivity {
                     .setItems(names, (d, i) -> FastDownload.show(MainActivity.this, ul.get(i), nameFor(ul.get(i), ti), ua)).show();
             });
         }).start();
+    }
+
+    String bestVideoUrl(Tab t, String src) {
+        if (src != null && src.startsWith("http")) return src;
+        synchronized (t.hlsList) {
+            for (String s : t.hlsList) if (s.toLowerCase().contains("master")) return s;
+            if (!t.hlsList.isEmpty()) return t.hlsList.get(0);
+        }
+        synchronized (t.sniffed) {
+            for (String s : t.sniffed) return s;
+        }
+        return null;
+    }
+
+    void openPlayer(String u, String title, double pos, Tab t) {
+        try {
+            t.wv.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}})", null);
+            android.content.Intent i = new android.content.Intent(this, PlayerActivity.class);
+            i.putExtra("url", u);
+            i.putExtra("name", (title == null || title.isEmpty()) ? t.title : title);
+            i.putExtra("pos", pos);
+            i.putExtra("ua", t.wv.getSettings().getUserAgentString());
+            i.putExtra("page", t.wv.getUrl());
+            startActivity(i);
+        } catch (Exception e) { }
+    }
+
+    void onDlFab() {
+        final Tab t = cur;
+        if (t == null) return;
+        String u = bestVideoUrl(t, t.vurl);
+        if (u != null) {
+            String ti = (t.vtitle != null && !t.vtitle.isEmpty()) ? t.vtitle : t.title;
+            FastDownload.show(this, u, nameFor(u, ti), t.wv.getSettings().getUserAgentString());
+            return;
+        }
+        onDlFabV2();
     }
 }

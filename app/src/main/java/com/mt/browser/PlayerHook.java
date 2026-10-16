@@ -30,11 +30,12 @@ public class PlayerHook {
                     n = j.optString("n");
                 }
             } catch (Exception e) { }
-            if (u.startsWith("http")) {
+            final String bu = u.startsWith("http") ? u : a.bestVideoUrl(a.cur, u);
+            if (bu != null) {
                 w.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}})", null);
                 cb.onCustomViewHidden();
                 Intent i = new Intent(a, PlayerActivity.class);
-                i.putExtra("url", u);
+                i.putExtra("url", bu);
                 i.putExtra("name", n);
                 i.putExtra("pos", t);
                 i.putExtra("ua", w.getSettings().getUserAgentString());

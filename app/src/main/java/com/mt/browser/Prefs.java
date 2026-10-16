@@ -24,4 +24,6 @@ public class Prefs {
     public static void setWifiOnly(Context c, boolean v) { sp(c).edit().putBoolean("wifionly", v).apply(); }
     public static boolean clipCatch(Context c) { return sp(c).getBoolean("clipcatch", true); }
     public static void setClipCatch(Context c, boolean v) { sp(c).edit().putBoolean("clipcatch", v).apply(); }
+    public static boolean builtinPlayer(Context c) { return sp(c).getBoolean("bplayer", true); }
+    public static void setBuiltinPlayer(Context c, boolean v) { sp(c).edit().putBoolean("bplayer", v).apply(); }
 }

@@ -127,7 +127,7 @@ public class PlayerActivity extends AppCompatActivity {
 
     void initPlayer() {
         HashMap<String, String> hd = new HashMap<>();
-        if (page != null && !page.isEmpty()) hd.put("Referer", page);
+        if (page != null && !page.isEmpty()) { hd.put("Referer", page); try { Uri pu = Uri.parse(page); hd.put("Origin", pu.getScheme() + "://" + pu.getHost()); } catch (Exception e) { } }
         String ck = CookieManager.getInstance().getCookie(url);
         if (ck != null) hd.put("Cookie", ck);
         DefaultHttpDataSource.Factory hf = new DefaultHttpDataSource.Factory()
@@ -137,7 +137,7 @@ public class PlayerActivity extends AppCompatActivity {
         player = new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(hf)).build();
         pv.setPlayer(player);
         if (startPos == 0) startPos = getSharedPreferences("mt", 0).getLong("pp_" + url.hashCode(), 0);
-        player.setMediaItem(MediaItem.fromUri(Uri.parse(url)));
+        player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url)).setMimeType(url.toLowerCase().contains(".m3u8") ? MimeTypes.APPLICATION_M3U8 : null).build());
         player.prepare();
         if (startPos > 0) player.seekTo(startPos);
         player.setPlayWhenReady(true);
@@ -425,10 +425,10 @@ public class PlayerActivity extends AppCompatActivity {
 
     void download() {
         String l = url.toLowerCase();
-        if (l.contains(".m3u8") || l.contains(".mpd")) { Toast.makeText(this, "Ye stream video hai, seedha download nahi hota", Toast.LENGTH_LONG).show(); return; }
+        if (l.contains(".mpd")) { Toast.makeText(this, "Ye stream video hai, seedha download nahi hota", Toast.LENGTH_LONG).show(); return; }
         if (!url.startsWith("http")) { Toast.makeText(this, "Ye file pehle se phone me hai", Toast.LENGTH_SHORT).show(); return; }
         String nm = URLUtil.guessFileName(url, null, null), ln = nm.toLowerCase();
-        if (ln.endsWith(".bin") || !nm.contains(".") || ln.startsWith("download") || ln.startsWith("videoplayback"))
+        if (ln.endsWith(".m3u8") || ln.endsWith(".bin") || !nm.contains(".") || ln.startsWith("download") || ln.startsWith("videoplayback"))
             nm = name.replaceAll("[\\\\/:*?\"<>|]", " ").trim() + ".mp4";
         FastDownload.show(this, url, nm, ua);
     }
@@ -496,7 +496,7 @@ public class PlayerActivity extends AppCompatActivity {
         MediaItem.SubtitleConfiguration sc = new MediaItem.SubtitleConfiguration.Builder(u)
                 .setMimeType(mime).setLanguage("und").setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build();
         long p = player.getCurrentPosition();
-        player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url)).setSubtitleConfigurations(Collections.singletonList(sc)).build(), p);
+        player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url)).setMimeType(url.toLowerCase().contains(".m3u8") ? MimeTypes.APPLICATION_M3U8 : null).setSubtitleConfigurations(Collections.singletonList(sc)).build(), p);
         player.prepare();
         player.play();
         osd("Subtitle load ho gaya");

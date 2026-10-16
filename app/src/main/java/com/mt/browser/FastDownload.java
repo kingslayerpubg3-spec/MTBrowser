@@ -145,6 +145,7 @@ public class FastDownload {
 
         final boolean media = name[0].toLowerCase().matches(".*\\.(mp4|mkv|webm|3gp|avi|mov|m4v|mp3|m4a|aac|wav|ogg)$");
         new Thread(() -> {
+            if (url.toLowerCase().contains(".m3u8")) { a.runOnUiThread(() -> info.setText("HD stream (HLS) • merge hokar save hoga")); return; }
             long len = -1;
             String dur = "";
             Bitmap bmp = null;

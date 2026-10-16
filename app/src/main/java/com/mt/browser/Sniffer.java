@@ -21,6 +21,7 @@ public class Sniffer {
             if (added) a.runOnUiThread(a::updateDlFab);
         } else if (p.endsWith(".m3u8") || p.endsWith(".mpd")) {
             t.hls = true;
+            if (p.endsWith(".m3u8")) { synchronized (t.hlsList) { if (t.hlsList.size() < 10 && !t.hlsList.contains(u)) t.hlsList.add(u); } }
         }
     }
 
@@ -30,6 +31,7 @@ public class Sniffer {
         t.vtitle = "";
         t.vplaying = false;
         t.hls = false;
+        t.hlsList.clear();
         a.updateDlFab();
     }
 }
