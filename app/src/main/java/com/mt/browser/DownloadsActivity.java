@@ -484,6 +484,7 @@ public class DownloadsActivity extends AppCompatActivity {
             names.add("Open Folder"); ids.add(1);
             names.add("Re-Download"); ids.add(2);
             names.add("Details"); ids.add(3);
+            if (kind(it.name) == 0) { names.add("Make seekable (seek fix)"); ids.add(7); }
             names.add("Delete"); ids.add(4);
         } else {
             names.add(it.status == ACTIVE ? "Pause" : it.status == PAUSED ? "Resume" : "Retry"); ids.add(5);
@@ -530,6 +531,7 @@ public class DownloadsActivity extends AppCompatActivity {
             case 4: doDelete(it); break;
             case 5: primary(it); break;
             case 6: DownloadEngine.remove(it, false); render(true); break;
+            case 7: seekFix(it); break;
         }
     }
 
@@ -565,7 +567,7 @@ public class DownloadsActivity extends AppCompatActivity {
         String st = it.status == DONE ? "Completed" : it.status == ACTIVE ? "Downloading" : it.status == PAUSED ? "Paused" : "Failed";
         String dt = new java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(new java.util.Date(it.id));
         String where = (it.uri != null && it.uri.startsWith("file:")) ? Uri.parse(it.uri).getPath() : "Download/MT Browser";
-        String msg = "Name: " + it.name + "\nSize: " + size(it.total > 0 ? it.total : it.done) + "\nStatus: " + st
+        String msg = "Name: " + it.name + "\nType: " + DownloadEngine.headerType(it) + "\nSize: " + size(it.total > 0 ? it.total : it.done) + "\nStatus: " + st
                 + "\nDate: " + dt + "\nFolder: " + where + "\nSource: " + (it.url == null || it.url.isEmpty() ? "-" : it.url);
         new AlertDialog.Builder(this).setTitle("Details").setMessage(msg)
             .setPositiveButton("OK", null)
@@ -581,5 +583,16 @@ public class DownloadsActivity extends AppCompatActivity {
             .setPositiveButton("Delete file", (d, w) -> { DownloadEngine.remove(it, true); render(true); })
             .setNeutralButton("Sirf list se hatao", (d, w) -> { DownloadEngine.remove(it, false); render(true); })
             .setNegativeButton("Cancel", null).show();
+    }
+
+    void seekFix(final Item it) {
+        Toast.makeText(this, "Seekable MP4 ban raha hai... badi file me 1-3 minute lag sakte hain", Toast.LENGTH_LONG).show();
+        new Thread(() -> {
+            final String r = DownloadEngine.makeSeekable(it);
+            runOnUiThread(() -> {
+                Toast.makeText(this, r == null ? "Seekable MP4 ban gaya: " + it.name : r, Toast.LENGTH_LONG).show();
+                render(true);
+            });
+        }).start();
     }
 }

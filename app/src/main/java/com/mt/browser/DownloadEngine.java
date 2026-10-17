@@ -738,7 +738,7 @@ public class DownloadEngine {
         return bo.toByteArray();
     }
 
-    static boolean remux(File in, File out) {
+    static boolean remuxOld(File in, File out) {
         android.media.MediaExtractor ex = new android.media.MediaExtractor();
         android.media.MediaMuxer mx = null;
         boolean started = false;
@@ -811,6 +811,7 @@ public class DownloadEngine {
                 return o2;
             }
             o2.delete();
+            toast("MP4 convert fail (" + rmxErr + "), file .ts me save hui");
         } catch (Throwable e) { }
         return out;
     }
@@ -872,7 +873,7 @@ public class DownloadEngine {
             String nm = it.name;
             int dd = nm.lastIndexOf('.');
             if (dd > 0 && nm.length() - dd <= 6) nm = nm.substring(0, dd);
-            it.name = nm + ".mp4";
+            it.name = nm + (map0 != null ? ".mp4" : ".ts");
             final java.util.concurrent.atomic.AtomicLong live = new java.util.concurrent.atomic.AtomicLong(0);
             final java.util.concurrent.atomic.AtomicLong okBytes = new java.util.concurrent.atomic.AtomicLong(0);
             final java.util.concurrent.atomic.AtomicInteger next = new java.util.concurrent.atomic.AtomicInteger(0);
@@ -986,6 +987,131 @@ public class DownloadEngine {
             it.speed = 0;
             it.running = false;
             save();
+        }
+    }
+
+    static volatile String rmxErr = "";
+
+    static void toast(final String s) {
+        try {
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(new Runnable() {
+                public void run() { android.widget.Toast.makeText(app, s, android.widget.Toast.LENGTH_LONG).show(); }
+            });
+        } catch (Throwable e) { }
+    }
+
+    static boolean remux(File in, File out) {
+        android.media.MediaExtractor ex = new android.media.MediaExtractor();
+        android.media.MediaMuxer mx = null;
+        boolean started = false;
+        try {
+            ex.setDataSource(in.getAbsolutePath());
+            int n = ex.getTrackCount();
+            int[] map = new int[n];
+            java.util.Arrays.fill(map, -1);
+            mx = new android.media.MediaMuxer(out.getAbsolutePath(), android.media.MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            int maxSz = 4 << 20;
+            boolean hasVideo = false;
+            for (int i = 0; i < n; i++) {
+                android.media.MediaFormat f = ex.getTrackFormat(i);
+                String m = f.getString(android.media.MediaFormat.KEY_MIME);
+                if (m == null) continue;
+                boolean v = m.startsWith("video/"), a = m.startsWith("audio/");
+                if (!v && !a) continue;
+                boolean ok = m.equals("video/avc") || m.equals("audio/mp4a-latm") || m.equals("video/mp4v-es")
+                        || m.equals("video/3gpp") || (m.equals("video/hevc") && Build.VERSION.SDK_INT >= 24);
+                if (!ok) { rmxErr = "codec " + m + " MP4 me supported nahi"; return false; }
+                map[i] = mx.addTrack(f);
+                if (v) hasVideo = true;
+                if (f.containsKey(android.media.MediaFormat.KEY_MAX_INPUT_SIZE))
+                    maxSz = Math.max(maxSz, f.getInteger(android.media.MediaFormat.KEY_MAX_INPUT_SIZE));
+            }
+            if (!hasVideo) { rmxErr = "video track nahi mila"; return false; }
+            for (int i = 0; i < n; i++) if (map[i] >= 0) ex.selectTrack(i);
+            mx.start();
+            started = true;
+            java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate(Math.min(Math.max(maxSz, 8 << 20), 24 << 20));
+            android.media.MediaCodec.BufferInfo bi = new android.media.MediaCodec.BufferInfo();
+            long base = -1, off = 0, lastAny = 0;
+            while (true) {
+                int ti = ex.getSampleTrackIndex();
+                if (ti < 0) break;
+                buf.clear();
+                int sz = ex.readSampleData(buf, 0);
+                if (sz < 0) break;
+                long t = ex.getSampleTime();
+                if (t < 0) { ex.advance(); continue; }
+                if (base < 0) base = t;
+                long o = t - base + off;
+                if (o < lastAny - 2000000L) { off += (lastAny - o) + 33000L; o = t - base + off; }
+                if (o > lastAny) lastAny = o;
+                bi.offset = 0;
+                bi.size = sz;
+                bi.presentationTimeUs = Math.max(0, o);
+                bi.flags = (ex.getSampleFlags() & android.media.MediaExtractor.SAMPLE_FLAG_SYNC) != 0
+                        ? android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME : 0;
+                if (map[ti] >= 0) mx.writeSampleData(map[ti], buf, bi);
+                ex.advance();
+            }
+            mx.stop();
+            started = false;
+            return out.length() > 0;
+        } catch (Throwable e) {
+            rmxErr = String.valueOf(e.getMessage());
+            return false;
+        } finally {
+            try { if (mx != null) { if (started) mx.stop(); mx.release(); } } catch (Throwable e) { }
+            try { ex.release(); } catch (Throwable e) { }
+        }
+    }
+
+    public static String headerType(Item it) {
+        try {
+            if (it.uri == null || it.uri.isEmpty()) return "?";
+            InputStream in = app.getContentResolver().openInputStream(Uri.parse(it.uri));
+            byte[] b = new byte[400];
+            int n = 0, r;
+            while (n < 400 && (r = in.read(b, n, 400 - n)) > 0) n += r;
+            in.close();
+            if (n >= 189 && b[0] == 0x47 && b[188] == 0x47) return "MPEG-TS (seek kamzor, Make seekable use karo)";
+            if (n >= 12 && b[4] == 'f' && b[5] == 't' && b[6] == 'y' && b[7] == 'p') return "MP4";
+            if (n >= 4 && (b[0] & 0xFF) == 0x1A && (b[1] & 0xFF) == 0x45) return "MKV";
+            return "Unknown";
+        } catch (Exception e) { return "?"; }
+    }
+
+    public static String makeSeekable(Item it) {
+        File in = new File(dir(), "ms_in.tmp"), out = new File(dir(), "ms_out.tmp");
+        try {
+            InputStream is = app.getContentResolver().openInputStream(Uri.parse(it.uri));
+            FileOutputStream fo = new FileOutputStream(in);
+            byte[] b = new byte[262144];
+            int n;
+            while ((n = is.read(b)) > 0) fo.write(b, 0, n);
+            fo.close();
+            is.close();
+            rmxErr = "";
+            if (!remux(in, out)) { in.delete(); out.delete(); return "Convert nahi ho saka: " + rmxErr; }
+            in.delete();
+            long sz = out.length();
+            String old = it.uri;
+            String nm = it.name;
+            int d = nm.lastIndexOf('.');
+            if (d > 0) nm = nm.substring(0, d);
+            try {
+                if (old.startsWith("file:")) new File(Uri.parse(old).getPath()).delete();
+                else app.getContentResolver().delete(Uri.parse(old), null, null);
+            } catch (Exception e) { }
+            it.name = nm + ".mp4";
+            publish(it, out);
+            it.total = sz;
+            it.done = sz;
+            save();
+            return null;
+        } catch (Exception e) {
+            in.delete();
+            out.delete();
+            return "Error: " + e.getMessage();
         }
     }
 }
