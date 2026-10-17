@@ -615,4 +615,21 @@ public class DownloadsActivity extends AppCompatActivity {
             });
         }).start();
     }
+
+    void openMx(Item it) {
+        String[] pk = {"com.mxtech.videoplayer.pro", "com.mxtech.videoplayer.ad"};
+        for (String p : pk) {
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setDataAndType(Uri.parse(it.uri), DownloadEngine.mime(it.name));
+                i.setPackage(p);
+                i.putExtra("decode_mode", (byte) 2);
+                i.putExtra("title", it.name);
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                return;
+            } catch (Exception e) { }
+        }
+        Toast.makeText(this, "MX Player install nahi mila", Toast.LENGTH_SHORT).show();
+    }
 }
