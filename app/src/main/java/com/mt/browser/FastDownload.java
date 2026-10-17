@@ -11,7 +11,6 @@ import android.view.Gravity;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.widget.*;
-import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import java.net.HttpURLConnection;

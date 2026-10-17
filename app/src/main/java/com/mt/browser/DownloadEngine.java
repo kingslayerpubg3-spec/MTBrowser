@@ -176,7 +176,7 @@ public class DownloadEngine {
             it.done = have;
             InputStream in = c.getInputStream();
             FileOutputStream out = new FileOutputStream(f, append);
-            byte[] buf = new byte[65536];
+            byte[] buf = new byte[131072];
             int n;
             long tw = System.currentTimeMillis(), bw = it.done, ts = tw;
             while (!it.stop && (n = in.read(buf)) > 0) {
@@ -242,7 +242,7 @@ public class DownloadEngine {
 
     static void copy(File f, OutputStream os) throws IOException {
         InputStream in = new FileInputStream(f);
-        byte[] b = new byte[65536];
+        byte[] b = new byte[131072];
         int n;
         while ((n = in.read(b)) > 0) os.write(b, 0, n);
         in.close();
@@ -383,7 +383,7 @@ public class DownloadEngine {
                 InputStream in = c.getInputStream();
                 RandomAccessFile r = new RandomAccessFile(f, "rw");
                 r.seek(g.c);
-                byte[] buf = new byte[65536];
+                byte[] buf = new byte[131072];
                 int n;
                 while (!it.stop && g.c <= g.e && (n = in.read(buf, 0, (int) Math.min(buf.length, g.e - g.c + 1))) > 0) {
                     r.write(buf, 0, n);
@@ -420,7 +420,7 @@ public class DownloadEngine {
                 RandomAccessFile r = new RandomAccessFile(f, "rw");
                 r.setLength(total);
                 r.close();
-                int n = total > 200L * 1024 * 1024 ? 8 : 6;
+                int n = Prefs.conns(app); if (total < 200L * 1024 * 1024) n = Math.max(4, n * 3 / 4);
                 long part = total / n;
                 for (int i = 0; i < n; i++) {
                     Seg g = new Seg();
@@ -676,7 +676,7 @@ public class DownloadEngine {
             File out = new File(dir(), it.id + ".part");
             FileOutputStream fo = new FileOutputStream(out);
             if (map0 != null) fo.write(getBytes(it, map0, null));
-            byte[] buf = new byte[65536];
+            byte[] buf = new byte[131072];
             for (int i = 0; i < N; i++) {
                 FileInputStream fi = new FileInputStream(new File(sd, "s" + i));
                 int n;
@@ -723,7 +723,7 @@ public class DownloadEngine {
         }
         InputStream in = c.getInputStream();
         ByteArrayOutputStream bo = new ByteArrayOutputStream(262144);
-        byte[] b = new byte[65536];
+        byte[] b = new byte[131072];
         int n;
         try {
             while (!it.stop && (n = in.read(b)) > 0) {
@@ -885,7 +885,7 @@ public class DownloadEngine {
                 if (f.exists() && f.length() > 0) { live.addAndGet(f.length()); okBytes.addAndGet(f.length()); fin.incrementAndGet(); }
             }
             ArrayList<Thread> th = new ArrayList<>();
-            for (int w = 0; w < 10; w++) {
+            for (int w = 0; w < Prefs.conns(app); w++) {
                 Thread t = new Thread(new Runnable() {
                     public void run() {
                         while (!it.stop && fail[0] == null) {

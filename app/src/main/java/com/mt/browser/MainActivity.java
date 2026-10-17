@@ -12,7 +12,6 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.*;
 import android.widget.*;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.webkit.ProfileStore;
 import androidx.webkit.WebViewCompat;
@@ -45,10 +44,22 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle b) {
-        super.onCreate(b);
+        super.onCreate(b); System.setProperty("http.maxConnections", "48");
         setContentView(R.layout.activity_main);
         container = findViewById(R.id.webContainer);
         urlBar = findViewById(R.id.urlBar);
+        urlBar.setOnTouchListener((vw, ev) -> {
+            android.graphics.drawable.Drawable[] cd = urlBar.getCompoundDrawablesRelative();
+            if (cd[2] == null) return false;
+            float zone = urlBar.getWidth() - urlBar.getPaddingEnd() - cd[2].getIntrinsicWidth() - 14 * getResources().getDisplayMetrics().density;
+            if (ev.getX() < zone) return false;
+            if (ev.getAction() == android.view.MotionEvent.ACTION_UP && cur != null) {
+                if (BrowserHooks.loadingState) cur.wv.stopLoading(); else cur.wv.reload();
+                BrowserHooks.loadingState = false;
+                BrowserHooks.lock(urlBar, cur.wv.getUrl());
+            }
+            return true;
+        });
         progress = findViewById(R.id.progress);
         btnTabs = findViewById(R.id.btnTabs);
 
@@ -101,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
 
         w.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) { Sniffer.see(MainActivity.this, t, r.getUrl().toString()); return (Prefs.adBlock(MainActivity.this) && AdBlock.isAd(r.getUrl().getHost())) ? new WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0])) : null; }
-            @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return handleInternal(r.getUrl().toString()); }
+            @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return BrowserHooks.nav(MainActivity.this, v, r) || handleInternal(r.getUrl().toString()); }
             @Override public void onPageStarted(WebView v, String u, Bitmap f) { Sniffer.reset(MainActivity.this, t);
                 if (t == cur) urlBar.setText(u.startsWith("file:///android_asset") ? "" : u);
             }
@@ -118,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
                 if (t != cur) return;
                 progress.setProgress(p);
                 progress.setVisibility(p < 100 ? View.VISIBLE : View.GONE);
+                { boolean ld = p < 100; if (ld != BrowserHooks.loadingState) { BrowserHooks.loadingState = ld; BrowserHooks.lock(urlBar, t.wv.getUrl()); } }
             }
         });
         w.setDownloadListener((url, ua, cd, mime, len) -> {
