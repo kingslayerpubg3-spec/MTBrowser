@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
         boolean vplaying, hls;
         final java.util.Set<String> sniffed = java.util.Collections.synchronizedSet(new java.util.LinkedHashSet<String>());
         final java.util.List<String> hlsList = java.util.Collections.synchronizedList(new java.util.ArrayList<String>());
+        final java.util.Set<String> scraped = java.util.Collections.synchronizedSet(new java.util.LinkedHashSet<String>());
         android.graphics.Bitmap thumb;
     }
 
@@ -653,7 +654,7 @@ public class MainActivity extends AppCompatActivity {
                 byte[] b = new byte[in.available()];
                 in.read(b);
                 in.close();
-                vjs = new String(b);
+                vjs = new String(b) + "\n" + readAsset("scrape.js");
             }
             v.evaluateJavascript(vjs, null);
         } catch (Exception e) { }
@@ -832,6 +833,9 @@ public class MainActivity extends AppCompatActivity {
         synchronized (t.sniffed) {
             for (String s : t.sniffed) if (!r.contains(s)) r.add(s);
         }
+        synchronized (t.scraped) {
+            for (String s : t.scraped) if (!r.contains(s)) r.add(s);
+        }
         return r;
     }
 
@@ -859,5 +863,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         if (ip != null) ip.resume();
+    }
+
+    String readAsset(String n) {
+        try {
+            java.io.InputStream in = getAssets().open(n);
+            byte[] b = new byte[in.available()];
+            in.read(b);
+            in.close();
+            return new String(b);
+        } catch (Exception e) { return ""; }
     }
 }

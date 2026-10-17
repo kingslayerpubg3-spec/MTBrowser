@@ -74,6 +74,7 @@ public class Qualities {
     static ArrayList<Q> load(String url, List<String> alts, String ua, String ref, double dur) {
         ArrayList<Q> out = new ArrayList<>();
         String lu = url.toLowerCase();
+        alts = filterAlts(url, alts);
         try {
             if (lu.contains(".m3u8")) {
                 DownloadEngine.Item hit = new DownloadEngine.Item();
@@ -133,7 +134,7 @@ public class Qualities {
                 ArrayList<String> us = new ArrayList<>();
                 us.add(url);
                 if (alts != null) for (String s : alts)
-                    if (s != null && !us.contains(s) && !s.toLowerCase().contains(".m3u8") && us.size() < 6) us.add(s);
+                    if (s != null && !us.contains(s) && !s.toLowerCase().contains(".m3u8") && us.size() < 10) us.add(s);
                 java.util.regex.Pattern pt = java.util.regex.Pattern.compile("(?i)(\\d{3,4})p");
                 for (int i = 0; i < us.size(); i++) {
                     DownloadEngine.Item pi = new DownloadEngine.Item();
@@ -152,7 +153,7 @@ public class Qualities {
                     out.add(q);
                 }
                 Collections.sort(out, new Comparator<Q>() {
-                    public int compare(Q x, Q y) { return Long.compare(y.size, x.size); }
+                    public int compare(Q x, Q y) { if (x.height > 0 && y.height > 0 && x.height != y.height) return y.height - x.height; return Long.compare(y.size, x.size); }
                 });
                 if (out.size() > 1) out.get(0).note = "Best";
             }
@@ -338,7 +339,7 @@ public class Qualities {
         } catch (Exception e) { }
         int tries = 0;
         for (String c : tr) {
-            if (tries++ > 10) break;
+            if (tries++ > 16) break;
             try {
                 DownloadEngine.Item t = new DownloadEngine.Item();
                 t.url = c;
@@ -349,5 +350,21 @@ public class Qualities {
             } catch (Exception e) { }
         }
         return null;
+    }
+
+    static List<String> filterAlts(String url, List<String> alts) {
+        if (alts == null) return null;
+        java.util.regex.Pattern pt = java.util.regex.Pattern.compile("(?i)(?:^|[^0-9])(\\d{3,4})p");
+        ArrayList<String> tok = new ArrayList<>(), all = new ArrayList<>();
+        for (String s : alts) {
+            if (s == null) continue;
+            String l = s.toLowerCase();
+            if (l.contains(".m3u8")) continue;
+            if (l.contains("thumb") || l.contains("poster") || l.contains("sprite") || l.contains("preview") || l.contains("trailer")) continue;
+            all.add(s);
+            if (pt.matcher(s).find()) tok.add(s);
+        }
+        int n = tok.size() + ((pt.matcher(url).find() && !tok.contains(url)) ? 1 : 0);
+        return n >= 2 ? tok : all;
     }
 }

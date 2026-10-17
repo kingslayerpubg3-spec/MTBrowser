@@ -33,6 +33,7 @@ public class Sniffer {
         t.vplaying = false;
         t.hls = false;
         t.hlsList.clear();
+        t.scraped.clear();
         a.updateDlFab();
     }
 }

@@ -67,4 +67,18 @@ public class VideoBridge {
 
     @JavascriptInterface
     public void vclose() { a.runOnUiThread(() -> a.inlineStop(t, false)); }
+
+    @JavascriptInterface
+    public void media(String json) {
+        try {
+            org.json.JSONArray arr = new org.json.JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) {
+                String u = arr.getString(i);
+                try {
+                    if (AdBlock.isAd(android.net.Uri.parse(u).getHost())) continue;
+                } catch (Exception e) { }
+                synchronized (t.scraped) { if (t.scraped.size() < 60) t.scraped.add(u); }
+            }
+        } catch (Exception e) { }
+    }
 }
