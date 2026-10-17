@@ -435,7 +435,7 @@ public class DownloadsActivity extends AppCompatActivity {
             String t;
             if (s == ACTIVE) {
                 String e = it.total > 0 ? eta(it.total - it.done, it.speed) : "";
-                t = speedText(it.speed) + (e.isEmpty() ? "" : "  •  " + e);
+                t = !it.note.isEmpty() ? it.note : speedText(it.speed) + (e.isEmpty() ? "" : "  •  " + e);
             } else if (s == PAUSED) t = it.err.isEmpty() ? "Paused" : "Paused • " + it.err;
             else t = "Failed • " + it.err;
             hd.sub.setText(t);

@@ -23,6 +23,7 @@ public class DownloadEngine {
         public long id;
         public String name = "", url = "", ua = "", uri = "", err = "";
         public String segs = "";
+        public volatile String note = "";
         public String ref = "";
         public volatile long total, done;
         public volatile int status;
@@ -533,7 +534,7 @@ public class DownloadEngine {
         }
     }
 
-    static void downloadHls(final Item it) {
+    static void downloadHlsOld(final Item it) {
         final File sd = new File(dir(), "h" + it.id);
         sd.mkdirs();
         try {
@@ -707,5 +708,284 @@ public class DownloadEngine {
         it.ref = old.ref;
         synchronized (DownloadEngine.class) { items.add(0, it); }
         resume(it);
+    }
+
+    static byte[] getBytesLive(Item it, String u, java.util.concurrent.atomic.AtomicLong live, long[] got) throws IOException {
+        Item t = new Item();
+        t.url = u;
+        t.ua = it.ua;
+        t.ref = it.ref;
+        HttpURLConnection c = open(t, null);
+        int code = c.getResponseCode();
+        if (code >= 400) {
+            try { c.getErrorStream().close(); } catch (Exception e) { }
+            throw new IOException("HTTP " + code);
+        }
+        InputStream in = c.getInputStream();
+        ByteArrayOutputStream bo = new ByteArrayOutputStream(262144);
+        byte[] b = new byte[65536];
+        int n;
+        try {
+            while (!it.stop && (n = in.read(b)) > 0) {
+                bo.write(b, 0, n);
+                live.addAndGet(n);
+                got[0] += n;
+            }
+        } finally {
+            try { in.close(); } catch (Exception e) { }
+        }
+        if (it.stop) throw new IOException("stopped");
+        return bo.toByteArray();
+    }
+
+    static boolean remux(File in, File out) {
+        android.media.MediaExtractor ex = new android.media.MediaExtractor();
+        android.media.MediaMuxer mx = null;
+        boolean started = false;
+        try {
+            ex.setDataSource(in.getAbsolutePath());
+            int n = ex.getTrackCount();
+            int[] map = new int[n];
+            java.util.Arrays.fill(map, -1);
+            mx = new android.media.MediaMuxer(out.getAbsolutePath(), android.media.MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            int maxSz = 4 << 20;
+            boolean hasVideo = false;
+            for (int i = 0; i < n; i++) {
+                android.media.MediaFormat f = ex.getTrackFormat(i);
+                String m = f.getString(android.media.MediaFormat.KEY_MIME);
+                if (m == null) continue;
+                boolean v = m.startsWith("video/"), a = m.startsWith("audio/");
+                if (!v && !a) continue;
+                boolean ok = m.equals("video/avc") || m.equals("audio/mp4a-latm") || m.equals("video/mp4v-es")
+                        || m.equals("video/3gpp") || (m.equals("video/hevc") && Build.VERSION.SDK_INT >= 24);
+                if (!ok) return false;
+                map[i] = mx.addTrack(f);
+                if (v) hasVideo = true;
+                if (f.containsKey(android.media.MediaFormat.KEY_MAX_INPUT_SIZE))
+                    maxSz = Math.max(maxSz, f.getInteger(android.media.MediaFormat.KEY_MAX_INPUT_SIZE));
+            }
+            if (!hasVideo) return false;
+            for (int i = 0; i < n; i++) if (map[i] >= 0) ex.selectTrack(i);
+            mx.start();
+            started = true;
+            java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate(Math.min(maxSz, 16 << 20));
+            android.media.MediaCodec.BufferInfo bi = new android.media.MediaCodec.BufferInfo();
+            long base = -1;
+            while (true) {
+                int ti = ex.getSampleTrackIndex();
+                if (ti < 0) break;
+                buf.clear();
+                int sz = ex.readSampleData(buf, 0);
+                if (sz < 0) break;
+                long t = ex.getSampleTime();
+                if (base < 0) base = Math.max(0, t);
+                bi.offset = 0;
+                bi.size = sz;
+                bi.presentationTimeUs = Math.max(0, t - base);
+                bi.flags = (ex.getSampleFlags() & android.media.MediaExtractor.SAMPLE_FLAG_SYNC) != 0
+                        ? android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME : 0;
+                if (map[ti] >= 0) mx.writeSampleData(map[ti], buf, bi);
+                ex.advance();
+            }
+            mx.stop();
+            started = false;
+            return out.length() > 0;
+        } catch (Throwable e) {
+            return false;
+        } finally {
+            try { if (mx != null) { if (started) mx.stop(); mx.release(); } } catch (Throwable e) { }
+            try { ex.release(); } catch (Throwable e) { }
+        }
+    }
+
+    static File finishHls(Item it, File out) {
+        try {
+            it.note = "Seekable MP4 bana raha hai...";
+            File o2 = new File(dir(), it.id + ".mp4.part");
+            if (remux(out, o2)) {
+                out.delete();
+                String nm = it.name;
+                int d = nm.lastIndexOf('.');
+                if (d > 0) nm = nm.substring(0, d);
+                it.name = nm + ".mp4";
+                return o2;
+            }
+            o2.delete();
+        } catch (Throwable e) { }
+        return out;
+    }
+
+    static void downloadHls(final Item it) {
+        final File sd = new File(dir(), "h" + it.id);
+        sd.mkdirs();
+        try {
+            String base = it.url;
+            String pl = new String(getBytes(it, base, null), "UTF-8");
+            if (pl.contains("#EXT-X-STREAM-INF")) {
+                String[] ls = pl.split("\\r?\\n");
+                long best = -1;
+                String bu = null;
+                for (int i = 0; i < ls.length; i++) {
+                    if (!ls[i].startsWith("#EXT-X-STREAM-INF")) continue;
+                    long bw = 0;
+                    String bs = attr(ls[i], "BANDWIDTH");
+                    if (bs != null) { try { bw = Long.parseLong(bs.trim()); } catch (Exception e) { } }
+                    for (int j = i + 1; j < ls.length; j++) {
+                        String s = ls[j].trim();
+                        if (s.isEmpty() || s.startsWith("#")) continue;
+                        if (bw > best) { best = bw; bu = resolve(base, s); }
+                        break;
+                    }
+                }
+                if (bu == null) throw new IOException("Playlist samajh nahi aaya");
+                base = bu;
+                pl = new String(getBytes(it, base, null), "UTF-8");
+            }
+            final ArrayList<String> segs = new ArrayList<>(), sk = new ArrayList<>(), si = new ArrayList<>();
+            String keyUri = null, iv = null, method = "NONE", map = null;
+            long seq = 0;
+            for (String raw : pl.split("\\r?\\n")) {
+                String s = raw.trim();
+                if (s.isEmpty()) continue;
+                if (s.startsWith("#EXT-X-MEDIA-SEQUENCE:")) {
+                    try { seq = Long.parseLong(s.substring(22).trim()); } catch (Exception e) { }
+                } else if (s.startsWith("#EXT-X-KEY:")) {
+                    method = attr(s, "METHOD");
+                    if (method == null) method = "NONE";
+                    String ku = attr(s, "URI");
+                    keyUri = ku == null ? null : resolve(base, ku);
+                    iv = attr(s, "IV");
+                } else if (s.startsWith("#EXT-X-MAP:")) {
+                    String mu = attr(s, "URI");
+                    if (mu != null) map = resolve(base, mu);
+                } else if (!s.startsWith("#")) {
+                    if (!method.equals("NONE") && !method.equals("AES-128")) throw new IOException("Encrypted (DRM) stream, download nahi ho sakta");
+                    segs.add(resolve(base, s));
+                    sk.add(method.equals("AES-128") ? keyUri : null);
+                    si.add(iv);
+                }
+            }
+            if (segs.isEmpty()) throw new IOException("Playlist khali hai");
+            final long seq0 = seq;
+            final String map0 = map;
+            final int N = segs.size();
+            String nm = it.name;
+            int dd = nm.lastIndexOf('.');
+            if (dd > 0 && nm.length() - dd <= 6) nm = nm.substring(0, dd);
+            it.name = nm + ".mp4";
+            final java.util.concurrent.atomic.AtomicLong live = new java.util.concurrent.atomic.AtomicLong(0);
+            final java.util.concurrent.atomic.AtomicLong okBytes = new java.util.concurrent.atomic.AtomicLong(0);
+            final java.util.concurrent.atomic.AtomicInteger next = new java.util.concurrent.atomic.AtomicInteger(0);
+            final java.util.concurrent.atomic.AtomicInteger fin = new java.util.concurrent.atomic.AtomicInteger(0);
+            final java.util.HashMap<String, byte[]> keys = new java.util.HashMap<>();
+            final String[] fail = {null};
+            for (int i = 0; i < N; i++) {
+                File f = new File(sd, "s" + i);
+                if (f.exists() && f.length() > 0) { live.addAndGet(f.length()); okBytes.addAndGet(f.length()); fin.incrementAndGet(); }
+            }
+            ArrayList<Thread> th = new ArrayList<>();
+            for (int w = 0; w < 10; w++) {
+                Thread t = new Thread(new Runnable() {
+                    public void run() {
+                        while (!it.stop && fail[0] == null) {
+                            int i = next.getAndIncrement();
+                            if (i >= N) return;
+                            File f = new File(sd, "s" + i);
+                            if (f.exists() && f.length() > 0) continue;
+                            int tries = 0;
+                            while (!it.stop && tries < 4) {
+                                long[] got = {0};
+                                try {
+                                    byte[] data = getBytesLive(it, segs.get(i), live, got);
+                                    String ku = sk.get(i);
+                                    if (ku != null) {
+                                        byte[] key;
+                                        synchronized (keys) { key = keys.get(ku); }
+                                        if (key == null) {
+                                            key = getBytes(it, ku, null);
+                                            synchronized (keys) { keys.put(ku, key); }
+                                        }
+                                        byte[] ivb = new byte[16];
+                                        String ih = si.get(i);
+                                        if (ih != null) {
+                                            String hx = (ih.startsWith("0x") || ih.startsWith("0X")) ? ih.substring(2) : ih;
+                                            while (hx.length() < 32) hx = "0" + hx;
+                                            for (int k = 0; k < 16; k++) ivb[k] = (byte) Integer.parseInt(hx.substring(k * 2, k * 2 + 2), 16);
+                                        } else {
+                                            long sq = seq0 + i;
+                                            for (int k = 15; k >= 8; k--) { ivb[k] = (byte) (sq & 0xFF); sq >>= 8; }
+                                        }
+                                        javax.crypto.Cipher ci = javax.crypto.Cipher.getInstance("AES/CBC/PKCS5Padding");
+                                        ci.init(javax.crypto.Cipher.DECRYPT_MODE, new javax.crypto.spec.SecretKeySpec(key, "AES"), new javax.crypto.spec.IvParameterSpec(ivb));
+                                        data = ci.doFinal(data);
+                                        live.addAndGet(data.length - got[0]);
+                                        got[0] = data.length;
+                                    }
+                                    File tmp = new File(sd, "s" + i + ".tmp");
+                                    FileOutputStream fo = new FileOutputStream(tmp);
+                                    fo.write(data);
+                                    fo.close();
+                                    if (!tmp.renameTo(f)) throw new IOException("Rename failed");
+                                    okBytes.addAndGet(data.length);
+                                    fin.incrementAndGet();
+                                    break;
+                                } catch (Exception e) {
+                                    live.addAndGet(-got[0]);
+                                    tries++;
+                                    if (tries >= 4 && !it.stop) fail[0] = String.valueOf(e.getMessage());
+                                    try { Thread.sleep(600); } catch (Exception x) { }
+                                }
+                            }
+                        }
+                    }
+                });
+                t.start();
+                th.add(t);
+            }
+            long tw = System.currentTimeMillis(), ts = tw, bw0 = live.get();
+            while (true) {
+                Thread.sleep(300);
+                long bb = live.get();
+                int f2 = fin.get();
+                it.done = bb;
+                long est = f2 > 0 ? okBytes.get() * N / f2 : 0;
+                it.total = Math.max(est, bb);
+                long now = System.currentTimeMillis();
+                if (now - tw >= 1000) { it.speed = Math.max(0, (bb - bw0) * 1000.0 / (now - tw)); tw = now; bw0 = bb; }
+                if (now - ts > 5000) { ts = now; save(); }
+                boolean alive = false;
+                for (Thread x : th) if (x.isAlive()) alive = true;
+                if (!alive) break;
+            }
+            if (it.stop) return;
+            if (fail[0] != null) throw new IOException(fail[0]);
+            for (int i = 0; i < N; i++) if (!new File(sd, "s" + i).exists()) throw new IOException("Segment missing");
+            it.speed = 0;
+            it.note = "Jod raha hai...";
+            File out = new File(dir(), it.id + ".part");
+            FileOutputStream fo = new FileOutputStream(out);
+            if (map0 != null) fo.write(getBytes(it, map0, null));
+            byte[] buf = new byte[262144];
+            for (int i = 0; i < N; i++) {
+                FileInputStream fi = new FileInputStream(new File(sd, "s" + i));
+                int n;
+                while ((n = fi.read(buf)) > 0) fo.write(buf, 0, n);
+                fi.close();
+            }
+            fo.close();
+            deleteDir(sd);
+            out = finishHls(it, out);
+            it.done = out.length();
+            it.total = it.done;
+            publish(it, out);
+            it.status = DONE;
+        } catch (Exception e) {
+            if (!it.stop) { it.status = FAILED; it.err = String.valueOf(e.getMessage()); }
+        } finally {
+            it.note = "";
+            it.speed = 0;
+            it.running = false;
+            save();
+        }
     }
 }
