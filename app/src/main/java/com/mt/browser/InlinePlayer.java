@@ -48,6 +48,7 @@ public class InlinePlayer {
     ArrayList<String> cands = new ArrayList<>();
     int ci;
     double expDur;
+    boolean want720 = true;
     String title = "", ua = "", page = "";
     boolean active, shown = true, dragging, verified, wentFull, wasPlaying, advancing;
     long pos0;
@@ -215,6 +216,7 @@ public class InlinePlayer {
         move(dpr, l, tp, w, hh, true);
         load();
         h.post(upd);
+        smartDefault();
         sched();
     }
 
@@ -262,6 +264,7 @@ public class InlinePlayer {
             @Override public void onPlayerError(PlaybackException e) { if (me == player) next(); }
         });
         player.prepare();
+        addDef(player);
         player.setPlayWhenReady(true);
     }
 
@@ -378,7 +381,7 @@ public class InlinePlayer {
 
     void playQ(Qualities.Q q) {
         if (player == null) return;
-        String nu = q.auto ? q.master : q.url;
+        want720 = false; String nu = q.auto ? q.master : q.url;
         if (nu == null || nu.isEmpty()) return;
         int ix = cands.indexOf(nu);
         if (ix == ci) return;
@@ -386,5 +389,33 @@ public class InlinePlayer {
         pos0 = player.getCurrentPosition();
         ci = ix;
         load();
+    }
+
+    void addDef(final ExoPlayer me) {
+        me.addListener(new Player.Listener() {
+            @Override public void onTracksChanged(androidx.media3.common.Tracks t) {
+                if (!want720 || me != player) return;
+                int n = 0;
+                for (androidx.media3.common.Tracks.Group g : t.getGroups()) if (g.getType() == C.TRACK_TYPE_VIDEO) n += g.length;
+                if (n > 1) { want720 = false; Qualities.setDefaultHeight(me, 720); }
+            }
+        });
+    }
+
+    void smartDefault() {
+        if (ci >= cands.size()) return;
+        final String u0 = cands.get(ci);
+        final ArrayList<String> al = new ArrayList<>(cands);
+        new Thread(() -> {
+            final String[] r = Qualities.pickDefault(u0, al, ua, page, 720);
+            h.post(() -> {
+                if (!active || player == null || r == null || ci >= cands.size()) return;
+                if (!cands.get(ci).equals(u0) || r[0].equals(u0)) return;
+                pos0 = player.getCurrentPosition();
+                cands.set(ci, r[0]);
+                want720 = true;
+                load();
+            });
+        }).start();
     }
 }

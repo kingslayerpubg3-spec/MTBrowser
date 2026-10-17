@@ -37,7 +37,7 @@ public class FastDownload {
     }
 
     public static void show(final Activity a, final String url, String name0, final String ua, boolean skipQ) {
-        if (!skipQ && url.toLowerCase().contains(".m3u8")) { routeQ(a, url, name0, ua); return; }
+        if (!skipQ && isVid(url)) { routeQ(a, url, name0, ua); return; }
         final BottomSheetDialog d = new BottomSheetDialog(a);
         final String[] name = {DownloadEngine.clean(name0)};
         final int tx = UiTheme.tx(a), sub = UiTheme.sub(a), acc = UiTheme.acc(a);
@@ -200,5 +200,13 @@ public class FastDownload {
             al = ((PlayerActivity) a).alts;
         }
         Qualities.show(a, url, al, ua, DownloadEngine.refOf(a), 0, name0 == null ? "" : name0, null, null);
+    }
+
+    static boolean isVid(String u) {
+        String l = u.toLowerCase();
+        int q = l.indexOf('?');
+        String p = q > 0 ? l.substring(0, q) : l;
+        return l.contains(".m3u8") || p.endsWith(".mp4") || p.endsWith(".webm") || p.endsWith(".mkv")
+                || p.endsWith(".m4v") || p.endsWith(".mov") || p.endsWith(".3gp");
     }
 }

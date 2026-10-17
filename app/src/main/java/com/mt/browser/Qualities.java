@@ -241,10 +241,10 @@ public class Qualities {
         d.getBehavior().setState(BottomSheetBehavior.STATE_EXPANDED);
 
         new Thread(() -> {
-            final ArrayList<Q> list = load(url, alts, ua, ref, dur);
+            final ArrayList<Q> list = loadPlus(url, alts, ua, ref, dur);
             a.runOnUiThread(() -> {
                 if (!d.isShowing()) return;
-                if (list.size() == 1) {
+                if (false) {
                     d.dismiss();
                     Q q = list.get(0); if (q.hls) android.widget.Toast.makeText(a, "Is video ki sirf ek hi quality mili", android.widget.Toast.LENGTH_LONG).show();
                     FastDownload.show(a, q.url, nameFor(q, title), ua, true);
@@ -260,6 +260,7 @@ public class Qualities {
                      String url, final String ua, final String title, ExoPlayer player, final PlayCb cb) {
         int tx = UiTheme.tx(a), sub = UiTheme.sub(a), acc = UiTheme.acc(a);
         Format vf = player == null ? null : player.getVideoFormat();
+        if (list.size() == 1) { TextView nt = tv(a, "Is video ki sirf ek hi quality mili. Site dusri qualities page me nahi deti.", 12, sub, false); nt.setPadding(0, 0, 0, dp(a, 10)); box.addView(nt); if (vf != null) { if (vf.height > 0) { if (list.get(0).height == 0) list.get(0).label = vf.height + "p"; } } }
         boolean multi = false;
         for (Q q : list) if (q.hls && q.height > 0) multi = true;
         if (multi && player != null) {
@@ -366,5 +367,154 @@ public class Qualities {
         }
         int n = tok.size() + ((pt.matcher(url).find() && !tok.contains(url)) ? 1 : 0);
         return n >= 2 ? tok : all;
+    }
+
+    static int heightOf(String url) {
+        try {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)(\\d{3,4})p").matcher(url);
+            if (m.find()) {
+                int h = Integer.parseInt(m.group(1));
+                if (h >= 100 && h <= 4320) return h;
+            }
+            m = java.util.regex.Pattern.compile("[_\\-/](144|240|360|480|720|1080)(?=\\.(?:mp4|m3u8|webm)|/)").matcher(url);
+            if (m.find()) return Integer.parseInt(m.group(1));
+        } catch (Exception e) { }
+        return 0;
+    }
+
+    static ArrayList<String> variants(String url) {
+        ArrayList<String> out = new ArrayList<>();
+        int[] R = {144, 240, 360, 480, 720, 1080};
+        String pre = null, post = null;
+        int cur = 0;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?i)(\\d{3,4})p").matcher(url);
+        if (m.find()) {
+            pre = url.substring(0, m.start(1));
+            post = url.substring(m.end(1));
+            cur = Integer.parseInt(m.group(1));
+        } else {
+            m = java.util.regex.Pattern.compile("([_\\-/])(144|240|360|480|720|1080)(?=\\.(?:mp4|m3u8|webm)|/)").matcher(url);
+            if (m.find()) {
+                pre = url.substring(0, m.start(2));
+                post = url.substring(m.end(2));
+                cur = Integer.parseInt(m.group(2));
+            }
+        }
+        if (pre == null) return out;
+        for (int r : R) if (r != cur) out.add(pre + r + post);
+        return out;
+    }
+
+    static long[] checkFile(String u, String ua, String ref, boolean hls) {
+        DownloadEngine.Item it = new DownloadEngine.Item();
+        it.url = u;
+        it.ua = ua == null ? "" : ua;
+        it.ref = ref == null ? "" : ref;
+        try {
+            if (hls) {
+                byte[] b = DownloadEngine.getBytes(it, u, null);
+                return new String(b, 0, Math.min(b.length, 20), "UTF-8").startsWith("#EXTM3U") ? new long[]{1} : new long[]{-1};
+            }
+            java.net.HttpURLConnection c = DownloadEngine.open(it, "bytes=0-0");
+            try {
+                int code = c.getResponseCode();
+                if (code != 200 && code != 206) return new long[]{-1};
+                String ct = c.getContentType();
+                if (ct != null) {
+                    ct = ct.toLowerCase();
+                    if (ct.startsWith("text/") || ct.contains("json") || ct.contains("html")) return new long[]{-1};
+                }
+                long len;
+                String cr = c.getHeaderField("Content-Range");
+                if (code == 206 && cr != null && cr.contains("/")) len = Long.parseLong(cr.substring(cr.indexOf('/') + 1).trim());
+                else len = c.getContentLengthLong();
+                return len > 100000 ? new long[]{len} : new long[]{-1};
+            } finally {
+                c.disconnect();
+            }
+        } catch (Exception e) {
+            return new long[]{-1};
+        }
+    }
+
+    static ArrayList<Q> loadPlus(String url, List<String> alts, String ua, String ref, double dur) {
+        ArrayList<Q> l = load(url, alts, ua, ref, dur);
+        if (l.size() > 1) return l;
+        final boolean hls = url.toLowerCase().contains(".m3u8");
+        ArrayList<String> vs = variants(url);
+        if (vs.isEmpty()) return l;
+        final String fua = ua, fref = ref;
+        java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(6);
+        ArrayList<java.util.concurrent.Future<long[]>> fs = new ArrayList<>();
+        for (final String v : vs) fs.add(ex.submit(() -> checkFile(v, fua, fref, hls)));
+        ArrayList<Q> extra = new ArrayList<>();
+        for (int i = 0; i < vs.size(); i++) {
+            long[] r;
+            try { r = fs.get(i).get(12, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception e) { continue; }
+            if (r == null || r[0] < 0) continue;
+            Q q = new Q();
+            q.url = vs.get(i);
+            q.hls = hls;
+            q.size = hls ? 0 : r[0];
+            q.height = heightOf(q.url);
+            q.label = q.height > 0 ? q.height + "p" : "Variant";
+            q.note = q.height >= 1080 ? "Full HD" : q.height >= 720 ? "HD" : q.height > 0 ? "SD" : "";
+            extra.add(q);
+        }
+        ex.shutdownNow();
+        if (extra.isEmpty()) return l;
+        Q o = l.get(0);
+        if (o.height == 0) {
+            o.height = heightOf(o.url);
+            if (o.height > 0) o.label = o.height + "p";
+        }
+        l.addAll(extra);
+        Collections.sort(l, new Comparator<Q>() {
+            public int compare(Q x, Q y) {
+                if (x.height != y.height) return y.height - x.height;
+                return Long.compare(y.size, x.size);
+            }
+        });
+        return l;
+    }
+
+    public static String[] pickDefault(String url, List<String> alts, String ua, String ref, int want) {
+        ArrayList<Q> l = loadPlus(url, alts, ua, ref, 0);
+        Q best = null;
+        for (Q q : l) {
+            if (q.height <= 0 || q.auto) continue;
+            if (best == null) best = q;
+            else if (q.height <= want && best.height > want) best = q;
+            else if (q.height <= want && best.height <= want && q.height > best.height) best = q;
+            else if (q.height > want && best.height > want && q.height < best.height) best = q;
+        }
+        if (best == null) return null;
+        String u = best.hls ? (best.master != null && !best.master.isEmpty() ? best.master : best.url) : best.url;
+        return new String[]{u, String.valueOf(best.height), best.hls ? "1" : "0"};
+    }
+
+    public static void setDefaultHeight(ExoPlayer p, int want) {
+        if (p == null) return;
+        for (Tracks.Group g : p.getCurrentTracks().getGroups()) {
+            if (g.getType() != C.TRACK_TYPE_VIDEO) continue;
+            int best = -1, bh = 0;
+            for (int i = 0; i < g.length; i++) {
+                if (!g.isTrackSupported(i)) continue;
+                int h = g.getTrackFormat(i).height;
+                if (h <= 0) continue;
+                boolean better;
+                if (best < 0) better = true;
+                else if (h <= want && bh > want) better = true;
+                else if (h <= want && bh <= want) better = h > bh;
+                else if (h > want && bh > want) better = h < bh;
+                else better = false;
+                if (better) { best = i; bh = h; }
+            }
+            if (best >= 0) {
+                p.setTrackSelectionParameters(p.getTrackSelectionParameters().buildUpon()
+                        .setOverrideForType(new TrackSelectionOverride(g.getMediaTrackGroup(), best)).build());
+                return;
+            }
+        }
     }
 }

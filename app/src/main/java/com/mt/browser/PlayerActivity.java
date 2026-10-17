@@ -67,6 +67,7 @@ public class PlayerActivity extends AppCompatActivity {
     SeekBar seek;
     ProgressBar spin;
     String url, name, ua, page;
+    boolean want720 = true;
     TextView qTv;
     java.util.ArrayList<String> alts = new java.util.ArrayList<>();
     boolean locked, shown = true, dragging, landscape = false, loop, noPip;
@@ -147,6 +148,7 @@ public class PlayerActivity extends AppCompatActivity {
         player.prepare();
         if (startPos > 0) player.seekTo(startPos);
         player.setPlayWhenReady(true);
+        smartDefault();
         player.addListener(new Player.Listener() {
             @Override public void onPlaybackStateChanged(int s) {
                 spin.setVisibility(s == Player.STATE_BUFFERING ? View.VISIBLE : View.GONE);
@@ -627,7 +629,7 @@ public class PlayerActivity extends AppCompatActivity {
 
     void playQ(Qualities.Q q) {
         if (player == null) return;
-        String nu = q.auto ? q.master : q.url;
+        want720 = false; String nu = q.auto ? q.master : q.url;
         if (nu == null || nu.isEmpty()) { if (q.auto) Qualities.setHeight(player, 0); return; }
         if (nu.equals(url)) { if (q.auto) Qualities.setHeight(player, 0); return; }
         long p = player.getCurrentPosition();
@@ -637,5 +639,31 @@ public class PlayerActivity extends AppCompatActivity {
         player.prepare();
         player.play();
         osd(q.auto ? "Auto quality" : "Quality: " + q.label);
+    }
+
+    void smartDefault() {
+        if (url == null || !url.startsWith("http")) return;
+        final String u0 = url;
+        player.addListener(new Player.Listener() {
+            @Override public void onTracksChanged(Tracks t) {
+                if (!want720 || player == null) return;
+                int n = 0;
+                for (Tracks.Group g : t.getGroups()) if (g.getType() == C.TRACK_TYPE_VIDEO) n += g.length;
+                if (n > 1) { want720 = false; Qualities.setDefaultHeight(player, 720); }
+            }
+        });
+        new Thread(() -> {
+            final String[] r = Qualities.pickDefault(u0, alts, ua, page, 720);
+            runOnUiThread(() -> {
+                if (player == null || r == null || !url.equals(u0) || r[0].equals(u0)) return;
+                long p = player.getCurrentPosition();
+                url = r[0];
+                want720 = true;
+                player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url))
+                        .setMimeType(url.toLowerCase().contains(".m3u8") ? MimeTypes.APPLICATION_M3U8 : null).build(), p);
+                player.prepare();
+                player.play();
+            });
+        }).start();
     }
 }
