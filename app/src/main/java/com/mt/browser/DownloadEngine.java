@@ -1114,4 +1114,45 @@ public class DownloadEngine {
             return "Error: " + e.getMessage();
         }
     }
+
+    public static String diagnose(Item it) {
+        StringBuilder sb = new StringBuilder();
+        android.media.MediaExtractor ex = new android.media.MediaExtractor();
+        try {
+            ex.setDataSource(app, Uri.parse(it.uri), null);
+            String ty = headerType(it);
+            sb.append("Type: ").append(ty.startsWith("MPEG-TS") ? "MPEG-TS" : ty).append("\n");
+            int vt = -1;
+            long dur = 0;
+            for (int i = 0; i < ex.getTrackCount(); i++) {
+                android.media.MediaFormat f = ex.getTrackFormat(i);
+                String m = f.getString(android.media.MediaFormat.KEY_MIME);
+                if (m == null) continue;
+                sb.append(m);
+                if (m.startsWith("video/")) {
+                    if (vt < 0) vt = i;
+                    if (f.containsKey(android.media.MediaFormat.KEY_HEIGHT))
+                        sb.append(" ").append(f.getInteger(android.media.MediaFormat.KEY_HEIGHT)).append("p");
+                }
+                if (m.equals("audio/ac3") || m.equals("audio/eac3") || m.equals("audio/mpeg-L2")) sb.append(" (MP4 me nahi jata)");
+                sb.append("\n");
+                if (f.containsKey(android.media.MediaFormat.KEY_DURATION))
+                    dur = Math.max(dur, f.getLong(android.media.MediaFormat.KEY_DURATION));
+            }
+            sb.append("Length: ").append(dur / 60000000L).append(" min\n");
+            if (vt >= 0 && dur > 0) {
+                ex.selectTrack(vt);
+                long target = dur / 2;
+                ex.seekTo(target, android.media.MediaExtractor.SEEK_TO_CLOSEST_SYNC);
+                long t = ex.getSampleTime();
+                boolean ok = t >= 0 && Math.abs(t - target) < 30000000L;
+                sb.append("Seek test (beech me jump): ").append(ok ? "PASS" : "FAIL").append("\n");
+            } else sb.append("Seek test: ho nahi saka\n");
+        } catch (Throwable e) {
+            sb.append("Check error: ").append(e.getMessage()).append("\n");
+        } finally {
+            try { ex.release(); } catch (Throwable e) { }
+        }
+        return sb.toString();
+    }
 }

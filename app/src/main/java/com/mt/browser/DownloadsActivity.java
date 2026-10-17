@@ -484,7 +484,7 @@ public class DownloadsActivity extends AppCompatActivity {
             names.add("Open Folder"); ids.add(1);
             names.add("Re-Download"); ids.add(2);
             names.add("Details"); ids.add(3);
-            if (kind(it.name) == 0) { names.add("Make seekable (seek fix)"); ids.add(7); }
+            if (kind(it.name) == 0) { names.add("Check & fix (all players)"); ids.add(7); }
             names.add("Delete"); ids.add(4);
         } else {
             names.add(it.status == ACTIVE ? "Pause" : it.status == PAUSED ? "Resume" : "Retry"); ids.add(5);
@@ -585,12 +585,32 @@ public class DownloadsActivity extends AppCompatActivity {
             .setNegativeButton("Cancel", null).show();
     }
 
-    void seekFix(final Item it) {
+    void seekFixOld(final Item it) {
         Toast.makeText(this, "Seekable MP4 ban raha hai... badi file me 1-3 minute lag sakte hain", Toast.LENGTH_LONG).show();
         new Thread(() -> {
             final String r = DownloadEngine.makeSeekable(it);
             runOnUiThread(() -> {
                 Toast.makeText(this, r == null ? "Seekable MP4 ban gaya: " + it.name : r, Toast.LENGTH_LONG).show();
+                render(true);
+            });
+        }).start();
+    }
+
+    void seekFix(final Item it) {
+        Toast.makeText(this, "File check ho rahi hai... badi file me 1-3 minute lag sakte hain", Toast.LENGTH_LONG).show();
+        new Thread(() -> {
+            final String b = DownloadEngine.diagnose(it);
+            final boolean pass = b.contains("Seek test (beech me jump): PASS") && b.contains("Type: MP4");
+            String r = null;
+            if (!pass) r = DownloadEngine.makeSeekable(it);
+            final String after = DownloadEngine.diagnose(it);
+            final String res = pass ? "File pehle se theek hai." : (r == null ? "Seekable MP4 ban gaya." : r);
+            final String hint = pass
+                ? "\n\nFile me seek theek hai. Agar MX Player me phir bhi atakta hai to MX me Settings > Decoder > S/W decoder chuno, ya file MT Player me kholo."
+                : (r == null ? "\n\nAb file MP4 hai. Dusre player me dobara try karo." : "\n\nIs file ko MP4 nahi bana sakte (upar wajah likhi hai). Is file ko MX Player ya VLC me hi chalana hoga.");
+            runOnUiThread(() -> {
+                String msg = "PEHLE:\n" + b + "\nRESULT: " + res + (pass ? "" : "\n\nBAAD ME:\n" + after) + hint;
+                new AlertDialog.Builder(this).setTitle("Check & fix").setMessage(msg).setPositiveButton("OK", null).show();
                 render(true);
             });
         }).start();
