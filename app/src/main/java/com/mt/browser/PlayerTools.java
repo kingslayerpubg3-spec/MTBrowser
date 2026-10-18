@@ -26,14 +26,15 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class PlayerTools {
-    static final int N = 17;
+    static final int N = 18;
+    static final int[] ORDER = {0, 1, 17, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 2, 3, 4, 15, 16};
     static final String[] LABEL = {"Night Mode", "Customise Items", "Subtitle", "Audio Track", "Aspect", "Loop", "Mute",
             "Sleep Timer", "A - B Repeat", "Mirror Mode", "Vertical Flip", "Audio Effect", "Speed", "Screenshot",
-            "Background Play", "Other Player", "Share"};
+            "Background Play", "Other Player", "Share", "Shuffle"};
     static final int[] ICON = {R.drawable.ic_pl_night, R.drawable.ic_m_edit, R.drawable.ic_pl_cc, R.drawable.ic_pl_audio,
             R.drawable.ic_pl_aspect, R.drawable.ic_pl_loop, R.drawable.ic_pl_mute, R.drawable.ic_pl_sleep, R.drawable.ic_pl_ab,
             R.drawable.ic_pl_mirror, R.drawable.ic_pl_vflip, R.drawable.ic_pl_fx, R.drawable.ic_m_speed, R.drawable.ic_pl_shot,
-            R.drawable.ic_pl_bg, R.drawable.ic_pl_open, R.drawable.ic_pl_share};
+            R.drawable.ic_pl_bg, R.drawable.ic_pl_open, R.drawable.ic_pl_share, R.drawable.ic_pl_shuffle};
 
     static boolean bg, muted, mirror, vflip, night;
     static long abA = -1, abB = -1;
@@ -93,6 +94,7 @@ public class PlayerTools {
             case 10: return vflip;
             case 11: return fxMode != 0;
             case 14: return bg;
+            case 17: return act != null && act.shuffle;
             default: return false;
         }
     }
@@ -100,8 +102,8 @@ public class PlayerTools {
     static void show(PlayerActivity a, boolean anim) {
         LinearLayout row = new LinearLayout(a);
         row.setPadding(dp(a, 8), 0, dp(a, 8), 0);
-        for (int id = 0; id < N; id++)
-            if (!hidden(a, id)) row.addView(tile(a, id), new LinearLayout.LayoutParams(dp(a, 72), -2));
+        for (int id : ORDER)
+            if (!hidden(a, id)) row.addView(tileNew(a, id), new LinearLayout.LayoutParams(dp(a, 72), -2));
         panel = new HorizontalScrollView(a);
         panel.setHorizontalScrollBarEnabled(false);
         panel.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -189,6 +191,7 @@ public class PlayerTools {
             case 14: bg = !bg; a.osd(bg ? "Background play on: Home dabane par bhi awaaz chalegi" : "Background play off"); refresh(a); break;
             case 15: hide(a); a.external(); break;
             case 16: hide(a); a.shareUrl(); break;
+            case 17: a.toggleShuffle(); refresh(a); break;
         }
     }
 
@@ -331,5 +334,47 @@ public class PlayerTools {
         } catch (Throwable e) {
             a.osd("Screenshot fail ho gaya");
         }
+    }
+
+    static View tileNew(final PlayerActivity a, final int id) {
+        LinearLayout c = new LinearLayout(a);
+        c.setOrientation(LinearLayout.VERTICAL);
+        c.setGravity(Gravity.CENTER_HORIZONTAL);
+        boolean on = active(id);
+        GradientDrawable g = new GradientDrawable();
+        g.setShape(GradientDrawable.OVAL);
+        g.setColor(on ? 0x88FFFFFF : 0x88444444);
+        View face;
+        if (id == 12) {
+            TextView s = new TextView(a);
+            s.setText(a.speedTv.getText().toString().replace(".0", ""));
+            s.setTextColor(Color.WHITE);
+            s.setTextSize(19);
+            s.setTypeface(null, android.graphics.Typeface.BOLD);
+            s.setGravity(Gravity.CENTER);
+            face = s;
+        } else {
+            ImageView iv = new ImageView(a);
+            iv.setImageResource(ICON[id]);
+            iv.setColorFilter(on ? UiTheme.acc(a) : Color.WHITE);
+            int p = dp(a, 17);
+            iv.setPadding(p, p, p, p);
+            face = iv;
+        }
+        face.setBackground(g);
+        c.addView(face, new LinearLayout.LayoutParams(dp(a, 58), dp(a, 58)));
+        TextView t = new TextView(a);
+        t.setText(LABEL[id]);
+        t.setTextColor(Color.WHITE);
+        t.setTextSize(11);
+        t.setGravity(Gravity.CENTER);
+        t.setMaxLines(2);
+        t.setEllipsize(TextUtils.TruncateAt.END);
+        t.setShadowLayer(4, 0, 1, 0xAA000000);
+        t.setPadding(0, dp(a, 5), 0, 0);
+        c.addView(t, new LinearLayout.LayoutParams(dp(a, 70), -2));
+        c.setOnClickListener(v -> run(a, id));
+        MenuSheet.press(c);
+        return c;
     }
 }

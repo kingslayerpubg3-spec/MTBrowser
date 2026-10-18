@@ -67,6 +67,9 @@ public class PlayerActivity extends AppCompatActivity {
     ProgressBar spin;
     String url, name, ua, page;
     ImageView loopBtn;
+    String[] plist, pnames;
+    int pidx;
+    boolean shuffle;
     boolean want720 = true;
     int lockH = -1;
     long lastHold;
@@ -121,6 +124,9 @@ public class PlayerActivity extends AppCompatActivity {
         name = in.getStringExtra("name");
         ua = in.getStringExtra("ua");
         page = in.getStringExtra("page");
+        plist = in.getStringArrayExtra("plist");
+        pnames = in.getStringArrayExtra("pnames");
+        pidx = in.getIntExtra("pidx", 0);
         String[] al0 = in.getStringArrayExtra("alts");
         if (al0 != null) for (String s0 : al0) alts.add(s0);
         startPos = (long) (in.getDoubleExtra("pos", 0) * 1000);
@@ -129,6 +135,7 @@ public class PlayerActivity extends AppCompatActivity {
         if (url == null) { finish(); return; }
         am = (AudioManager) getSystemService(AUDIO_SERVICE);
         buildUi();
+        relayout();
         initPlayer();
         addLock();
         immersive();
@@ -428,7 +435,7 @@ public class PlayerActivity extends AppCompatActivity {
             curT.setText(fmt(p));
             seek.setProgress(d > 0 ? (int) (p * 10000 / d) : 0);
         }
-        durT.setText(fmt(d));
+        durT.setText("-" + fmt(Math.max(0, d - p)));
         { androidx.media3.common.Format vf = player.getVideoFormat(); if (vf != null && vf.height > 0) qTv.setText(vf.height + "p"); }
         seek.setSecondaryProgress(d > 0 ? (int) (player.getBufferedPosition() * 10000 / d) : 0);
         long now = System.currentTimeMillis();
@@ -732,4 +739,88 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     void showMore() { PlayerTools.toggle(this); }
+
+    void detach(View v) {
+        if (v != null && v.getParent() != null) ((android.view.ViewGroup) v.getParent()).removeView(v);
+    }
+
+    void relayout() {
+        View seekRow = bottom.getChildAt(0);
+        detach(qTv); detach(dlBtn); detach(pipBtn); detach(rotBtn); detach(playBtn);
+        detach(battIv); detach(clock); detach(speedTv);
+        bottom.removeAllViews();
+        top.removeAllViews();
+        top.addView(backBtn, new LinearLayout.LayoutParams(dp(46), dp(46)));
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1f);
+        tp.setMargins(dp(6), 0, dp(6), 0);
+        top.addView(title, tp);
+        qTv.setPadding(dp(8), dp(10), dp(8), dp(10));
+        top.addView(qTv, new LinearLayout.LayoutParams(-2, -2));
+        top.addView(dlBtn, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        ImageView au = icon(R.drawable.ic_pl_audio, 11);
+        au.setOnClickListener(x -> audioTracks());
+        top.addView(au, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        ImageView cc = icon(R.drawable.ic_pl_cc, 11);
+        cc.setOnClickListener(x -> pickSub());
+        top.addView(cc, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        top.addView(moreBtn, new LinearLayout.LayoutParams(dp(44), dp(44)));
+
+        bottom.setPadding(dp(14), dp(34), dp(14), dp(8));
+        bottom.addView(seekRow, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout ctl = new LinearLayout(this);
+        ctl.setGravity(Gravity.CENTER_VERTICAL);
+        ctl.addView(new View(this), new LinearLayout.LayoutParams(0, dp(56), 1f));
+        LinearLayout mid = new LinearLayout(this);
+        mid.setGravity(Gravity.CENTER_VERTICAL);
+        ImageView pv0 = icon(R.drawable.ic_pl_prev, 13);
+        pv0.setOnClickListener(x -> prevNext(-1));
+        mid.addView(pv0, new LinearLayout.LayoutParams(dp(50), dp(50)));
+        mid.addView(playBtn, new LinearLayout.LayoutParams(dp(62), dp(62)));
+        ImageView nx0 = icon(R.drawable.ic_pl_next, 13);
+        nx0.setOnClickListener(x -> prevNext(1));
+        mid.addView(nx0, new LinearLayout.LayoutParams(dp(50), dp(50)));
+        ctl.addView(mid, new LinearLayout.LayoutParams(-2, -2));
+        LinearLayout right = new LinearLayout(this);
+        right.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        ImageView as0 = icon(R.drawable.ic_pl_aspect, 11);
+        as0.setOnClickListener(x -> cycleAspect());
+        right.addView(as0, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        right.addView(rotBtn, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        right.addView(pipBtn, new LinearLayout.LayoutParams(dp(44), dp(44)));
+        ctl.addView(right, new LinearLayout.LayoutParams(0, dp(56), 1f));
+        bottom.addView(ctl, new LinearLayout.LayoutParams(-1, -2));
+
+        FrameLayout.LayoutParams lk = (FrameLayout.LayoutParams) lockBtn.getLayoutParams();
+        lk.gravity = Gravity.BOTTOM | Gravity.START;
+        lk.setMargins(dp(14), 0, 0, dp(11));
+        lockBtn.setLayoutParams(lk);
+    }
+
+    void toggleShuffle() {
+        if (plist == null || plist.length < 2) { osd("Playlist nahi hai (Downloads se video kholo)"); return; }
+        shuffle = !shuffle;
+        osd(shuffle ? "Shuffle on" : "Shuffle off");
+    }
+
+    void prevNext(int dir) {
+        if (player == null) return;
+        if (plist != null && plist.length > 1) {
+            if (dir < 0 && player.getCurrentPosition() > 3000) { player.seekTo(0); return; }
+            int n = plist.length, i;
+            if (shuffle && dir > 0) { i = pidx; while (i == pidx) i = (int) (Math.random() * n); }
+            else i = (pidx + dir + n) % n;
+            playIndex(i);
+        } else seekBy(dir * 10000L);
+    }
+
+    void playIndex(int i) {
+        pidx = i;
+        url = plist[i];
+        name = (pnames != null && i < pnames.length) ? pnames[i] : "Video";
+        title.setText(name);
+        player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url)).build());
+        player.prepare();
+        player.play();
+        osd(name);
+    }
 }
