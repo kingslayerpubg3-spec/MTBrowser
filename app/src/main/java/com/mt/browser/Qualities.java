@@ -41,7 +41,7 @@ public class Qualities {
         if (p == null) return;
         TrackSelectionParameters cur = p.getTrackSelectionParameters();
         if (h <= 0) {
-            p.setTrackSelectionParameters(cur.buildUpon().clearOverridesOfType(C.TRACK_TYPE_VIDEO).build());
+            p.setTrackSelectionParameters(cur.buildUpon().clearOverridesOfType(C.TRACK_TYPE_VIDEO).clearVideoSizeConstraints().build());
             return;
         }
         for (Tracks.Group g : p.getCurrentTracks().getGroups()) {
@@ -535,12 +535,42 @@ public class Qualities {
                 else better = false;
                 if (better) { best = i; bh = h; }
             }
-            if (best < 0) return;
+            if (best < 0) { holdByBitrate(p, g, want); return; }
             TrackSelectionOverride ov = p.getTrackSelectionParameters().overrides.get(g.getMediaTrackGroup());
             if (ov != null && ov.trackIndices.size() == 1 && ov.trackIndices.get(0) == best) return;
             p.setTrackSelectionParameters(p.getTrackSelectionParameters().buildUpon()
                     .setOverrideForType(new TrackSelectionOverride(g.getMediaTrackGroup(), best)).build());
             return;
         }
+    }
+
+    public static void applyStart(ExoPlayer p, int want) {
+        if (p == null) return;
+        TrackSelectionParameters.Builder b = p.getTrackSelectionParameters().buildUpon();
+        if (want <= 0) b.clearVideoSizeConstraints();
+        else b.setMinVideoSize(1, Math.max(1, want - 40)).setMaxVideoSize(Integer.MAX_VALUE, want + 40);
+        p.setTrackSelectionParameters(b.build());
+    }
+
+    static void holdByBitrate(ExoPlayer p, Tracks.Group g, int want) {
+        long target = want >= 1080 ? 5500000L : want >= 720 ? 2800000L : want >= 480 ? 1300000L : 700000L;
+        int best = -1;
+        long bb = 0;
+        for (int i = 0; i < g.length; i++) {
+            if (!g.isTrackSupported(i)) continue;
+            Format f = g.getTrackFormat(i);
+            long br = f.bitrate > 0 ? f.bitrate : f.peakBitrate;
+            if (br <= 0) continue;
+            boolean better;
+            if (best < 0) better = true;
+            else if (br <= target && bb > target) better = true;
+            else if (br <= target && bb <= target) better = br > bb;
+            else if (br > target && bb > target) better = br < bb;
+            else better = false;
+            if (better) { best = i; bb = br; }
+        }
+        if (best < 0) return;
+        p.setTrackSelectionParameters(p.getTrackSelectionParameters().buildUpon()
+                .setOverrideForType(new TrackSelectionOverride(g.getMediaTrackGroup(), best)).build());
     }
 }

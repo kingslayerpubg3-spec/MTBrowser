@@ -147,6 +147,7 @@ public class PlayerActivity extends AppCompatActivity {
         pv.setPlayer(player);
         if (startPos == 0) startPos = getSharedPreferences("mt", 0).getLong("pp_" + url.hashCode(), 0);
         player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url)).setMimeType(url.toLowerCase().contains(".m3u8") ? MimeTypes.APPLICATION_M3U8 : null).build());
+        Qualities.applyStart(player, Prefs.defQ(this));
         player.prepare();
         if (startPos > 0) player.seekTo(startPos);
         player.setPlayWhenReady(true);
@@ -164,7 +165,7 @@ public class PlayerActivity extends AppCompatActivity {
     void buildUi() {
         root = new FrameLayout(this);
         root.setBackgroundColor(Color.BLACK);
-        pv = new PlayerView(this);
+        pv = (PlayerView) getLayoutInflater().inflate(R.layout.pv_texture, null);
         pv.setUseController(false);
         pv.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);
         root.addView(pv, new FrameLayout.LayoutParams(-1, -1));
@@ -562,7 +563,7 @@ public class PlayerActivity extends AppCompatActivity {
     @Override
     public void onUserLeaveHint() {
         super.onUserLeaveHint();
-        if (!noPip && player != null && player.isPlaying()) enterPip();
+        if (!noPip && !PlayerTools.bg && player != null && player.isPlaying()) enterPip();
     }
 
     @Override
@@ -592,7 +593,7 @@ public class PlayerActivity extends AppCompatActivity {
         long p = player.getCurrentPosition(), d = player.getDuration();
         if (d > 0 && p > d - 5000) p = 0;
         getSharedPreferences("mt", 0).edit().putLong("pp_" + url.hashCode(), p).apply();
-        if (!isInPictureInPictureMode()) player.pause();
+        if (!isInPictureInPictureMode() && !PlayerTools.bg) player.pause();
     }
 
     @Override
@@ -603,6 +604,7 @@ public class PlayerActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        PlayerTools.release(this);
         h.removeCallbacksAndMessages(null);
         if (player != null) { player.release(); player = null; }
         super.onDestroy();
@@ -727,5 +729,5 @@ public class PlayerActivity extends AppCompatActivity {
         }
     }
 
-    void showMore() { PlayerMenu.show(this); }
+    void showMore() { PlayerTools.toggle(this); }
 }

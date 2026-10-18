@@ -264,6 +264,7 @@ public class InlinePlayer {
             @Override public void onIsPlayingChanged(boolean p) { if (me == player) { refreshPlay(); if (p) sched(); } }
             @Override public void onPlayerError(PlaybackException e) { if (me == player) next(); }
         });
+        Qualities.applyStart(player, Prefs.defQ(a));
         player.prepare();
         addDef(player);
         addLock(player);
