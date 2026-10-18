@@ -517,4 +517,30 @@ public class Qualities {
             }
         }
     }
+
+    public static void holdHeight(ExoPlayer p, int want) {
+        if (p == null || want <= 0) return;
+        for (Tracks.Group g : p.getCurrentTracks().getGroups()) {
+            if (g.getType() != C.TRACK_TYPE_VIDEO) continue;
+            int best = -1, bh = 0;
+            for (int i = 0; i < g.length; i++) {
+                if (!g.isTrackSupported(i)) continue;
+                int h = g.getTrackFormat(i).height;
+                if (h <= 0) continue;
+                boolean better;
+                if (best < 0) better = true;
+                else if (h <= want && bh > want) better = true;
+                else if (h <= want && bh <= want) better = h > bh;
+                else if (h > want && bh > want) better = h < bh;
+                else better = false;
+                if (better) { best = i; bh = h; }
+            }
+            if (best < 0) return;
+            TrackSelectionOverride ov = p.getTrackSelectionParameters().overrides.get(g.getMediaTrackGroup());
+            if (ov != null && ov.trackIndices.size() == 1 && ov.trackIndices.get(0) == best) return;
+            p.setTrackSelectionParameters(p.getTrackSelectionParameters().buildUpon()
+                    .setOverrideForType(new TrackSelectionOverride(g.getMediaTrackGroup(), best)).build());
+            return;
+        }
+    }
 }

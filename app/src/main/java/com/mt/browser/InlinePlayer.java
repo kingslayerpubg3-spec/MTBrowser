@@ -49,6 +49,7 @@ public class InlinePlayer {
     int ci;
     double expDur;
     boolean want720 = true;
+    int lockH = -1;
     String title = "", ua = "", page = "";
     boolean active, shown = true, dragging, verified, wentFull, wasPlaying, advancing;
     long pos0;
@@ -246,7 +247,7 @@ public class InlinePlayer {
         DefaultHttpDataSource.Factory hf = new DefaultHttpDataSource.Factory()
                 .setAllowCrossProtocolRedirects(true).setDefaultRequestProperties(hd);
         if (!ua.isEmpty()) hf.setUserAgent(ua);
-        player = new ExoPlayer.Builder(a).setMediaSourceFactory(new DefaultMediaSourceFactory(hf)).build();
+        player = new ExoPlayer.Builder(a).setBandwidthMeter(new androidx.media3.exoplayer.upstream.DefaultBandwidthMeter.Builder(a).setInitialBitrateEstimate(20000000L).build()).setMediaSourceFactory(new DefaultMediaSourceFactory(hf)).build();
         pv.setPlayer(player);
         player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url))
                 .setMimeType(url.toLowerCase().contains(".m3u8") ? MimeTypes.APPLICATION_M3U8 : null).build());
@@ -265,6 +266,7 @@ public class InlinePlayer {
         });
         player.prepare();
         addDef(player);
+        addLock(player);
         player.setPlayWhenReady(true);
     }
 
@@ -381,7 +383,7 @@ public class InlinePlayer {
 
     void playQ(Qualities.Q q) {
         if (player == null) return;
-        want720 = false; String nu = q.auto ? q.master : q.url;
+        want720 = false; lockH = q.auto ? 0 : (q.height > 0 ? q.height : lockH); String nu = q.auto ? q.master : q.url;
         if (nu == null || nu.isEmpty()) return;
         int ix = cands.indexOf(nu);
         if (ix == ci) return;
@@ -417,5 +419,15 @@ public class InlinePlayer {
                 load();
             });
         }).start();
+    }
+
+    void addLock(final ExoPlayer me) {
+        me.addListener(new Player.Listener() {
+            @Override public void onTracksChanged(androidx.media3.common.Tracks t) {
+                if (me != player) return;
+                int h = lockH >= 0 ? lockH : Prefs.defQ(a);
+                if (h > 0) Qualities.holdHeight(me, h);
+            }
+        });
     }
 }

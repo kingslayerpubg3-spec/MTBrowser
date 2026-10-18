@@ -66,7 +66,9 @@ public class PlayerActivity extends AppCompatActivity {
     SeekBar seek;
     ProgressBar spin;
     String url, name, ua, page;
+    ImageView loopBtn;
     boolean want720 = true;
+    int lockH = -1;
     TextView qTv;
     java.util.ArrayList<String> alts = new java.util.ArrayList<>();
     boolean locked, shown = true, dragging, landscape = false, loop, noPip;
@@ -127,6 +129,7 @@ public class PlayerActivity extends AppCompatActivity {
         am = (AudioManager) getSystemService(AUDIO_SERVICE);
         buildUi();
         initPlayer();
+        addLock();
         immersive();
         h.post(updR);
     }
@@ -140,7 +143,7 @@ public class PlayerActivity extends AppCompatActivity {
                 .setAllowCrossProtocolRedirects(true)
                 .setDefaultRequestProperties(hd);
         if (ua != null && !ua.isEmpty()) hf.setUserAgent(ua);
-        player = new ExoPlayer.Builder(this, new androidx.media3.exoplayer.DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setLoadControl(new androidx.media3.exoplayer.DefaultLoadControl.Builder().setBufferDurationsMs(25000, 80000, 1500, 3000).build()).setMediaSourceFactory(new DefaultMediaSourceFactory(hf)).build(); player.setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC);
+        player = new ExoPlayer.Builder(this, new androidx.media3.exoplayer.DefaultRenderersFactory(this).setEnableDecoderFallback(true)).setBandwidthMeter(new androidx.media3.exoplayer.upstream.DefaultBandwidthMeter.Builder(this).setInitialBitrateEstimate(20000000L).build()).setLoadControl(new androidx.media3.exoplayer.DefaultLoadControl.Builder().setBufferDurationsMs(25000, 80000, 1500, 3000).build()).setMediaSourceFactory(new DefaultMediaSourceFactory(hf)).build(); player.setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC);
         pv.setPlayer(player);
         if (startPos == 0) startPos = getSharedPreferences("mt", 0).getLong("pp_" + url.hashCode(), 0);
         player.setMediaItem(new MediaItem.Builder().setUri(Uri.parse(url)).setMimeType(url.toLowerCase().contains(".m3u8") ? MimeTypes.APPLICATION_M3U8 : null).build());
@@ -229,6 +232,21 @@ public class PlayerActivity extends AppCompatActivity {
         durT = text("0:00", 14, false);
         r1.addView(durT, new LinearLayout.LayoutParams(-2, -2));
         bottom.addView(r1, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout r3 = new LinearLayout(this);
+        r3.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        ImageView ccB = icon(R.drawable.ic_pl_cc, 10);
+        ccB.setOnClickListener(x -> pickSub());
+        r3.addView(ccB, new LinearLayout.LayoutParams(dp(46), dp(46)));
+        ImageView auB = icon(R.drawable.ic_pl_audio, 10);
+        auB.setOnClickListener(x -> audioTracks());
+        r3.addView(auB, new LinearLayout.LayoutParams(dp(46), dp(46)));
+        ImageView asB = icon(R.drawable.ic_pl_aspect, 10);
+        asB.setOnClickListener(x -> cycleAspect());
+        r3.addView(asB, new LinearLayout.LayoutParams(dp(46), dp(46)));
+        loopBtn = icon(R.drawable.ic_pl_loop, 10);
+        loopBtn.setOnClickListener(x -> toggleLoop());
+        r3.addView(loopBtn, new LinearLayout.LayoutParams(dp(46), dp(46)));
+        bottom.addView(r3, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout r2 = new LinearLayout(this);
         r2.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         qTv = text("Auto", 15, true); qTv.setPadding(dp(12), dp(10), dp(12), dp(10)); r2.addView(qTv, new LinearLayout.LayoutParams(-2, -2));
@@ -443,7 +461,7 @@ public class PlayerActivity extends AppCompatActivity {
         FastDownload.show(this, url, nm, ua);
     }
 
-    void showMore() {
+    void showMoreOld() {
         String[] it = {"Subtitle load karo", "Audio track", "Aspect ratio: " + RN[resize], "Loop: " + (loop ? "On" : "Off"), "Dusre player me kholo", "Link share karo"};
         new AlertDialog.Builder(this).setItems(it, (d, i) -> {
             switch (i) {
@@ -628,7 +646,7 @@ public class PlayerActivity extends AppCompatActivity {
 
     void playQ(Qualities.Q q) {
         if (player == null) return;
-        want720 = false; String nu = q.auto ? q.master : q.url;
+        want720 = false; lockH = q.auto ? 0 : (q.height > 0 ? q.height : lockH); String nu = q.auto ? q.master : q.url;
         if (nu == null || nu.isEmpty()) { if (q.auto) Qualities.setHeight(player, 0); return; }
         if (nu.equals(url)) { if (q.auto) Qualities.setHeight(player, 0); return; }
         long p = player.getCurrentPosition();
@@ -665,4 +683,49 @@ public class PlayerActivity extends AppCompatActivity {
             });
         }).start();
     }
+
+    void addLock() {
+        if (player == null) return;
+        player.addListener(new Player.Listener() {
+            @Override public void onTracksChanged(Tracks t) {
+                if (player == null) return;
+                int h = lockH >= 0 ? lockH : Prefs.defQ(PlayerActivity.this);
+                if (h > 0) Qualities.holdHeight(player, h);
+            }
+        });
+    }
+
+    void cycleAspect() {
+        resize = (resize + 1) % 3;
+        pv.setResizeMode(MODES[resize]);
+        osd("Aspect: " + RN[resize]);
+    }
+
+    void toggleLoop() {
+        loop = !loop;
+        player.setRepeatMode(loop ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+        loopBtn.setColorFilter(loop ? UiTheme.acc(this) : Color.WHITE);
+        osd("Loop " + (loop ? "On" : "Off"));
+    }
+
+    void shareUrl() {
+        noPip = true;
+        Intent s = new Intent(Intent.ACTION_SEND);
+        s.setType("text/plain");
+        s.putExtra(Intent.EXTRA_TEXT, url);
+        startActivity(Intent.createChooser(s, "Share"));
+    }
+
+    void menuAct(int k) {
+        switch (k) {
+            case 0: pickSub(); break;
+            case 1: audioTracks(); break;
+            case 2: cycleAspect(); break;
+            case 3: toggleLoop(); break;
+            case 4: external(); break;
+            case 5: shareUrl(); break;
+        }
+    }
+
+    void showMore() { PlayerMenu.show(this); }
 }
