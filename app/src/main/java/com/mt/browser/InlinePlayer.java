@@ -50,6 +50,7 @@ public class InlinePlayer {
     double expDur;
     boolean want720 = true;
     int lockH = -1;
+    long lastHold;
     String title = "", ua = "", page = "";
     boolean active, shown = true, dragging, verified, wentFull, wasPlaying, advancing;
     long pos0;
@@ -308,6 +309,7 @@ public class InlinePlayer {
 
     void update() {
         if (player == null || ov == null) return;
+        { long nw = System.currentTimeMillis(); if (nw - lastHold > 2000) { lastHold = nw; int hq = lockH >= 0 ? lockH : Prefs.defQ(a); if (hq > 0) Qualities.holdHeight(player, hq); } }
         long d = player.getDuration();
         if (d == C.TIME_UNSET || d < 0) d = 0;
         long p = player.getCurrentPosition();

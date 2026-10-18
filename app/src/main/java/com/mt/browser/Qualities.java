@@ -145,6 +145,7 @@ public class Qualities {
                     Q q = new Q();
                     q.url = pi.url;
                     q.size = Math.max(0, pr[0]);
+                    if (i > 0 && q.size < 300000) continue;
                     java.util.regex.Matcher m = pt.matcher(q.url);
                     if (m.find()) {
                         q.height = Integer.parseInt(m.group(1));
@@ -155,6 +156,7 @@ public class Qualities {
                 Collections.sort(out, new Comparator<Q>() {
                     public int compare(Q x, Q y) { if (x.height > 0 && y.height > 0 && x.height != y.height) return y.height - x.height; return Long.compare(y.size, x.size); }
                 });
+                { java.util.HashSet<Integer> sh = new java.util.HashSet<>(); for (int k = 0; k < out.size(); k++) { int hh = out.get(k).height; if (hh > 0 && !sh.add(hh)) { out.remove(k); k--; } } }
                 if (out.size() > 1) out.get(0).note = "Best";
             }
         } catch (Exception e) { }

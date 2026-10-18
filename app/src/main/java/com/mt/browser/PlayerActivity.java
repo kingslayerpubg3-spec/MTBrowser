@@ -69,6 +69,7 @@ public class PlayerActivity extends AppCompatActivity {
     ImageView loopBtn;
     boolean want720 = true;
     int lockH = -1;
+    long lastHold;
     TextView qTv;
     java.util.ArrayList<String> alts = new java.util.ArrayList<>();
     boolean locked, shown = true, dragging, landscape = false, loop, noPip;
@@ -419,6 +420,7 @@ public class PlayerActivity extends AppCompatActivity {
 
     void update() {
         if (player == null) return;
+        { long nw = System.currentTimeMillis(); if (nw - lastHold > 2000) { lastHold = nw; int hq = lockH >= 0 ? lockH : Prefs.defQ(this); if (hq > 0) Qualities.holdHeight(player, hq); } }
         long d = player.getDuration();
         if (d == C.TIME_UNSET || d < 0) d = 0;
         long p = player.getCurrentPosition();
