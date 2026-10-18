@@ -6,6 +6,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Store {
+    static final java.util.concurrent.ExecutorService HEX = java.util.concurrent.Executors.newSingleThreadExecutor();
     static SharedPreferences sp(Context c) { return c.getSharedPreferences("mt", 0); }
 
     public static JSONArray get(Context c, String key) {
@@ -36,7 +37,7 @@ public class Store {
 
     public static void addHistory(Context c, String title, String url) {
         if (url == null || url.startsWith("file:") || url.startsWith("about:")) return;
-        addTo(c, "hist", title, url, 200);
+        final Context cc = c.getApplicationContext(); final String ft = title, fu = url; HEX.execute(new Runnable() { public void run() { addTo(cc, "hist", ft, fu, 200); } });
     }
 
     public static void remove(Context c, String key, int idx) {

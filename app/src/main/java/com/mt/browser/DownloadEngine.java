@@ -156,9 +156,10 @@ public class DownloadEngine {
             File f = new File(dir(), it.id + ".part");
             long have = f.exists() ? f.length() : 0;
             c = (HttpURLConnection) new URL(it.url).openConnection();
-            c.setConnectTimeout(15000);
-            c.setReadTimeout(20000);
+            c.setConnectTimeout(8000);
+            c.setReadTimeout(12000);
             c.setInstanceFollowRedirects(true);
+        c.setRequestProperty("Accept-Encoding", "identity");
             if (!it.ua.isEmpty()) c.setRequestProperty("User-Agent", it.ua);
             String ck = CookieManager.getInstance().getCookie(it.url);
             if (ck != null) c.setRequestProperty("Cookie", ck);
@@ -242,7 +243,7 @@ public class DownloadEngine {
 
     static void copy(File f, OutputStream os) throws IOException {
         InputStream in = new FileInputStream(f);
-        byte[] b = new byte[131072];
+        byte[] b = new byte[1048576];
         int n;
         while ((n = in.read(b)) > 0) os.write(b, 0, n);
         in.close();
@@ -318,9 +319,10 @@ public class DownloadEngine {
 
     static HttpURLConnection open(Item it, String range) throws IOException {
         HttpURLConnection c = (HttpURLConnection) new URL(it.url).openConnection();
-        c.setConnectTimeout(15000);
-        c.setReadTimeout(20000);
+        c.setConnectTimeout(8000);
+        c.setReadTimeout(12000);
         c.setInstanceFollowRedirects(true);
+        c.setRequestProperty("Accept-Encoding", "identity");
         if (!it.ua.isEmpty()) c.setRequestProperty("User-Agent", it.ua);
         String ck = CookieManager.getInstance().getCookie(it.url);
         if (ck != null) c.setRequestProperty("Cookie", ck);
@@ -332,10 +334,10 @@ public class DownloadEngine {
         return c;
     }
 
-    static long[] probe(Item it) {
+    static long[] probeRaw(Item it) {
         HttpURLConnection c = null;
         try {
-            c = open(it, "bytes=0-0");
+            c = open(it, "bytes=0-0"); c.setConnectTimeout(6000); c.setReadTimeout(8000);
             int code = c.getResponseCode();
             String cr = c.getHeaderField("Content-Range");
             if (code == 206 && cr != null && cr.contains("/"))
@@ -358,7 +360,7 @@ public class DownloadEngine {
             if (f.exists() && f.length() > 0) { downloadSingle(it); return; }
             long[] p = probe(it);
             total = p[0];
-            multi = p[1] == 1 && total >= 8L * 1024 * 1024;
+            multi = p[1] == 1 && total >= 4L * 1024 * 1024;
         }
         if (!multi) { downloadSingle(it); return; }
         downloadMulti(it, f, total, resume);
@@ -1154,5 +1156,13 @@ public class DownloadEngine {
             try { ex.release(); } catch (Throwable e) { }
         }
         return sb.toString();
+    }
+
+    static long[] probe(Item it) {
+        long[] c = ProbeCache.get(it.url);
+        if (c != null) return c;
+        long[] r = probeRaw(it);
+        ProbeCache.put(it.url, r);
+        return r;
     }
 }

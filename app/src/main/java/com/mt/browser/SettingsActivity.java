@@ -165,7 +165,7 @@ public class SettingsActivity extends AppCompatActivity {
         swA.setOnCheckedChangeListener((vw, on) -> Prefs.setAskAds(this, on));
         row(g8, R.drawable.ic_m_shield, 0xFFEF4444, "Ad ya popup se pehle poochho", "Naya tab, redirect ya dusra app kholne se pehle permission", swA, vw -> swA.toggle());
         final TextView[] cvt = new TextView[1];
-        cvt[0] = row(g8, R.drawable.ic_m_download, 0xFF4C8DFF, "Download speed", Prefs.conns(this) + " connections", null, vw -> new AlertDialog.Builder(this).setTitle("Connections (zyada = tez, par kuch sites rok sakti hain)").setItems(new String[]{"6", "10", "16", "24"}, (dd, k) -> { int[] z = {6, 10, 16, 24}; Prefs.setConns(this, z[k]); cvt[0].setText(z[k] + " connections"); }).show());
+        cvt[0] = row(g8, R.drawable.ic_m_download, 0xFF4C8DFF, "Download speed", Prefs.conns(this) + " connections", null, vw -> new AlertDialog.Builder(this).setTitle("Connections (zyada = tez, par kuch sites rok sakti hain)").setItems(new String[]{"6", "10", "16", "24", "32"}, (dd, k) -> { int[] z = {6, 10, 16, 24, 32}; Prefs.setConns(this, z[k]); cvt[0].setText(z[k] + " connections"); }).show());
         final TextView[] dqt = new TextView[1];
         dqt[0] = row(g8, R.drawable.ic_m_play, 0xFFEF3B2D, "Default video quality", Prefs.defQ(this) == 0 ? "Auto" : Prefs.defQ(this) + "p", null, vw -> new AlertDialog.Builder(this).setTitle("Default quality").setItems(new String[]{"Auto", "480p", "720p", "1080p"}, (dd, k) -> { int[] z = {0, 480, 720, 1080}; Prefs.setDefQ(this, z[k]); dqt[0].setText(z[k] == 0 ? "Auto" : z[k] + "p"); }).show());
 

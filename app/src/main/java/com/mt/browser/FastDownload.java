@@ -152,8 +152,8 @@ public class FastDownload {
             String ck = CookieManager.getInstance().getCookie(url);
             try {
                 HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-                c.setConnectTimeout(8000);
-                c.setReadTimeout(8000);
+                c.setConnectTimeout(4000);
+                c.setReadTimeout(5000);
                 c.setRequestProperty("Range", "bytes=0-0");
                 if (ua != null && !ua.isEmpty()) c.setRequestProperty("User-Agent", ua);
                 if (ck != null) c.setRequestProperty("Cookie", ck);
@@ -163,6 +163,7 @@ public class FastDownload {
                 else len = c.getContentLengthLong();
                 c.disconnect();
             } catch (Throwable e) { }
+            { final long l0 = len; a.runOnUiThread(() -> { if (d.isShowing() && l0 > 0) info.setText(DownloadsActivity.size(l0)); }); }
             if (media) {
                 try {
                     MediaMetadataRetriever r = new MediaMetadataRetriever();

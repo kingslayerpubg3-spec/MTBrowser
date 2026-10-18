@@ -28,7 +28,7 @@ public class Prefs {
     public static void setBuiltinPlayer(Context c, boolean v) { sp(c).edit().putBoolean("bplayer", v).apply(); }
     public static boolean askAds(Context c) { return sp(c).getBoolean("askads", true); }
     public static void setAskAds(Context c, boolean v) { sp(c).edit().putBoolean("askads", v).apply(); }
-    public static int conns(Context c) { return sp(c).getInt("conns", 10); }
+    public static int conns(Context c) { return sp(c).getInt("conns", 16); }
     public static void setConns(Context c, int v) { sp(c).edit().putInt("conns", v).apply(); }
     public static int defQ(Context c) { return sp(c).getInt("defq", 720); }
     public static void setDefQ(Context c, int v) { sp(c).edit().putInt("defq", v).apply(); }

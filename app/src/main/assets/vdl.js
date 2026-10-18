@@ -39,5 +39,5 @@ document.addEventListener('loadedmetadata',function(){setTimeout(tick,200);},tru
 window.addEventListener('scroll',sch,true);
 window.addEventListener('resize',sch);
 document.addEventListener('touchmove',sch,{capture:true,passive:true});
-setInterval(tick,300);
+(function lp(){if(!document.hidden)tick();setTimeout(lp,act?300:800);})();
 })();

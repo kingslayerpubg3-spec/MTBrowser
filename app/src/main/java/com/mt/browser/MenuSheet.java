@@ -28,7 +28,7 @@ public class MenuSheet {
     static void press(View v) {
         v.setOnTouchListener((x, e) -> {
             int ac = e.getAction();
-            if (ac == MotionEvent.ACTION_DOWN) x.animate().scaleX(0.9f).scaleY(0.9f).setDuration(90).start();
+            if (ac == MotionEvent.ACTION_DOWN) { x.animate().scaleX(0.9f).scaleY(0.9f).setDuration(90).start(); x.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP); }
             else if (ac == MotionEvent.ACTION_UP || ac == MotionEvent.ACTION_CANCEL) x.animate().scaleX(1f).scaleY(1f).setDuration(140).start();
             return false;
         });

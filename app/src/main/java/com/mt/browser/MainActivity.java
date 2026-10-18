@@ -92,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
         final Tab t = new Tab();
         t.incog = incog;
         WebView w = new WebView(this);
+        w.setOverScrollMode(View.OVER_SCROLL_NEVER);
         w.setBackgroundColor(incog ? 0xFF0B0714 : UiTheme.bg2(this));
 
         if (incog) {
@@ -103,6 +104,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         WebSettings s = w.getSettings();
+        ProbeCache.ua = s.getUserAgentString();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
         s.setBuiltInZoomControls(true);
@@ -113,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
         w.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) { Sniffer.see(MainActivity.this, t, r.getUrl().toString()); return (Prefs.adBlock(MainActivity.this) && AdBlock.isAd(r.getUrl().getHost())) ? new WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0])) : null; }
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return BrowserHooks.nav(MainActivity.this, v, r) || handleInternal(r.getUrl().toString()); }
-            @Override public void onPageStarted(WebView v, String u, Bitmap f) { Sniffer.reset(MainActivity.this, t);
+            @Override public void onPageStarted(WebView v, String u, Bitmap f) { Sniffer.reset(MainActivity.this, t); ProbeCache.ref = u;
                 if (t == cur) urlBar.setText(u.startsWith("file:///android_asset") ? "" : u);
             }
             @Override public void onPageFinished(WebView v, String u) { injectVideoJs(v);

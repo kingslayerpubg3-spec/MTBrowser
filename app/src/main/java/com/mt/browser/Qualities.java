@@ -135,6 +135,7 @@ public class Qualities {
                 us.add(url);
                 if (alts != null) for (String s : alts)
                     if (s != null && !us.contains(s) && !s.toLowerCase().contains(".m3u8") && us.size() < 10) us.add(s);
+                warm(us, ua, ref);
                 java.util.regex.Pattern pt = java.util.regex.Pattern.compile("(?i)(\\d{3,4})p");
                 for (int i = 0; i < us.size(); i++) {
                     DownloadEngine.Item pi = new DownloadEngine.Item();
@@ -342,7 +343,7 @@ public class Qualities {
         } catch (Exception e) { }
         int tries = 0;
         for (String c : tr) {
-            if (tries++ > 16) break;
+            if (tries++ > 8) break;
             try {
                 DownloadEngine.Item t = new DownloadEngine.Item();
                 t.url = c;
@@ -417,7 +418,7 @@ public class Qualities {
                 byte[] b = DownloadEngine.getBytes(it, u, null);
                 return new String(b, 0, Math.min(b.length, 20), "UTF-8").startsWith("#EXTM3U") ? new long[]{1} : new long[]{-1};
             }
-            java.net.HttpURLConnection c = DownloadEngine.open(it, "bytes=0-0");
+            java.net.HttpURLConnection c = DownloadEngine.open(it, "bytes=0-0"); c.setConnectTimeout(4000); c.setReadTimeout(5000);
             try {
                 int code = c.getResponseCode();
                 if (code != 200 && code != 206) return new long[]{-1};
@@ -450,9 +451,10 @@ public class Qualities {
         ArrayList<java.util.concurrent.Future<long[]>> fs = new ArrayList<>();
         for (final String v : vs) fs.add(ex.submit(() -> checkFile(v, fua, fref, hls)));
         ArrayList<Q> extra = new ArrayList<>();
+        final long dl = System.currentTimeMillis() + 5000;
         for (int i = 0; i < vs.size(); i++) {
             long[] r;
-            try { r = fs.get(i).get(12, java.util.concurrent.TimeUnit.SECONDS); } catch (Exception e) { continue; }
+            try { r = fs.get(i).get(Math.max(200, dl - System.currentTimeMillis()), java.util.concurrent.TimeUnit.MILLISECONDS); } catch (Exception e) { continue; }
             if (r == null || r[0] < 0) continue;
             Q q = new Q();
             q.url = vs.get(i);
@@ -574,5 +576,28 @@ public class Qualities {
         if (best < 0) return;
         p.setTrackSelectionParameters(p.getTrackSelectionParameters().buildUpon()
                 .setOverrideForType(new TrackSelectionOverride(g.getMediaTrackGroup(), best)).build());
+    }
+
+    static void warm(ArrayList<String> us, String ua, String ref) {
+        java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(6);
+        ArrayList<java.util.concurrent.Future<?>> fs = new ArrayList<>();
+        final String fua = ua == null ? "" : ua, fref = ref == null ? "" : ref;
+        for (final String u : us) {
+            if (ProbeCache.get(u) != null) continue;
+            fs.add(ex.submit(new Runnable() {
+                public void run() {
+                    DownloadEngine.Item it = new DownloadEngine.Item();
+                    it.url = u;
+                    it.ua = fua;
+                    it.ref = fref;
+                    ProbeCache.put(u, DownloadEngine.probeRaw(it));
+                }
+            }));
+        }
+        long dl = System.currentTimeMillis() + 6000;
+        for (java.util.concurrent.Future<?> f : fs) {
+            try { f.get(Math.max(200, dl - System.currentTimeMillis()), java.util.concurrent.TimeUnit.MILLISECONDS); } catch (Exception e) { }
+        }
+        ex.shutdownNow();
     }
 }
