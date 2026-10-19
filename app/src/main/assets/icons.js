@@ -27,5 +27,5 @@ Q('<path d="M19,9h-4V3H9v6H5l7,7 7,-7zM5,18v2h14v-2H5z"/>'),
 Q('<path d="M13,3c-4.97,0 -9,4.03 -9,9H1l3.89,3.89 0.07,0.14L9,12H6c0,-3.87 3.13,-7 7,-7s7,3.13 7,7 -3.13,7 -7,7c-1.93,0 -3.68,-0.79 -4.94,-2.06l-1.42,1.42C8.27,19.99 10.51,21 13,21c4.97,0 9,-4.03 9,-9s-4.03,-9 -9,-9zM12,8v5l4.28,2.54 0.72,-1.21 -3.5,-2.08V8H12z"/>'),
 Q('<path d="M12,2.5 L20,7 L20,17 L12,21.5 L4,17 L4,7 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>')
 ];
-document.querySelectorAll('.q em').forEach(function(e,i){e.innerHTML=QI[i]||'';});
+document.querySelectorAll('.q em').forEach(function(e,i){if(QI[i])e.innerHTML=QI[i];});
 })();

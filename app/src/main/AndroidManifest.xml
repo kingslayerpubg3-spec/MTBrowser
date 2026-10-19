@@ -30,5 +30,6 @@
         <activity android:name=".DownloadsActivity" android:exported="false" />
     <service android:name=".DownloadService" android:exported="false" android:foregroundServiceType="dataSync" />
         <activity android:name=".PlayerActivity" android:exported="false" android:supportsPictureInPicture="true" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|layoutDirection" />
+        <activity android:name=".VpnActivity" android:exported="false" />
     </application>
 </manifest>

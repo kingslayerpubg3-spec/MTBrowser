@@ -159,6 +159,8 @@ public class SettingsActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cancel", null).show());
         row(g3, R.drawable.ic_m_info, 0xFF8E5CFF, "About MT Browser", "Version 9.0 • Fast, Safe, Smart", null, null);
+        LinearLayout g9 = group("VPN");
+        row(g9, R.drawable.ic_m_shield, 0xFF14B8A6, "MT VPN", "Country chuno aur connect karo (browser, downloads, player)", null, vw -> startActivity(new android.content.Intent(this, VpnActivity.class)));
         LinearLayout g8 = group("Safety, speed aur quality");
         final Switch swA = new Switch(this);
         swA.setChecked(Prefs.askAds(this));

@@ -113,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
         if (incog) s.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         w.setWebViewClient(new WebViewClient() {
+            @Override public void onReceivedHttpAuthRequest(WebView v, android.webkit.HttpAuthHandler hh, String hst, String realm) { if (VpnManager.connected && VpnManager.user != null && hst.equals(VpnManager.host)) hh.proceed(VpnManager.user, VpnManager.pass); else super.onReceivedHttpAuthRequest(v, hh, hst, realm); }
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) { Sniffer.see(MainActivity.this, t, r.getUrl().toString()); return (Prefs.adBlock(MainActivity.this) && AdBlock.isAd(r.getUrl().getHost())) ? new WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0])) : null; }
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return BrowserHooks.nav(MainActivity.this, v, r) || handleInternal(r.getUrl().toString()); }
             @Override public void onPageStarted(WebView v, String u, Bitmap f) { Sniffer.reset(MainActivity.this, t); ProbeCache.ref = u;
@@ -499,6 +500,7 @@ public class MainActivity extends AppCompatActivity {
         else if (m.startsWith("history")) openLib("history");
         else if (m.startsWith("downloads")) openLib("downloads");
         else if (m.startsWith("settings")) openSettings();
+        else if (m.startsWith("vpn")) startActivity(new android.content.Intent(this, VpnActivity.class));
         return true;
     }
 
