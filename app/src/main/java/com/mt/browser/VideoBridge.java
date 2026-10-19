@@ -12,7 +12,7 @@ public class VideoBridge {
     public void video(String url, String title) {
         t.vurl = url == null ? "" : url;
         t.vtitle = title == null ? "" : title;
-        & if (t.vurl.startsWith("http") && !t.vurl.toLowerCase().contains(".m3u8")) ProbeCache.async(t.vurl);
+        if (t.vurl.startsWith("http") && !t.vurl.toLowerCase().contains(".m3u8")) ProbeCache.async(t.vurl);
         a.runOnUiThread(a::updateDlFab);
     }
 
