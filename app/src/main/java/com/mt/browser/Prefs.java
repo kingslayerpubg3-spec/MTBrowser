@@ -32,4 +32,6 @@ public class Prefs {
     public static void setConns(Context c, int v) { sp(c).edit().putInt("conns", v).apply(); }
     public static int defQ(Context c) { return sp(c).getInt("defq", 720); }
     public static void setDefQ(Context c, int v) { sp(c).edit().putInt("defq", v).apply(); }
+    public static int textZoom(Context c) { return sp(c).getInt("tz", 100); }
+    public static void setTextZoom(Context c, int v) { sp(c).edit().putInt("tz", v).apply(); }
 }

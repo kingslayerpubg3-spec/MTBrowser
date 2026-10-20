@@ -44,7 +44,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle b) {
-        super.onCreate(b); System.setProperty("http.maxConnections", "48");
+        super.onCreate(b);
+        new Thread(() -> DownloadEngine.autoResume(getApplicationContext())).start(); System.setProperty("http.maxConnections", "48");
         setContentView(R.layout.activity_main);
         container = findViewById(R.id.webContainer);
         urlBar = findViewById(R.id.urlBar);
@@ -61,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
         progress = findViewById(R.id.progress);
+        UrlSuggest.attach(this, urlBar);
         btnTabs = findViewById(R.id.btnTabs);
 
         urlBar.setOnEditorActionListener((v, id, e) -> {
@@ -81,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnMenu).setOnClickListener(v -> MenuSheet.show(MainActivity.this));
 
         newTab(false);
+        handleExt(getIntent());
     }
 
     boolean profilesSupported() {
@@ -106,6 +109,9 @@ public class MainActivity extends AppCompatActivity {
         WebSettings s = w.getSettings();
         ProbeCache.ua = s.getUserAgentString();
         s.setJavaScriptEnabled(true);
+        s.setSupportMultipleWindows(true);
+        s.setGeolocationEnabled(true);
+        s.setTextZoom(Prefs.textZoom(MainActivity.this));
         s.setDomStorageEnabled(true);
         s.setBuiltInZoomControls(true);
         s.setDisplayZoomControls(false);
@@ -113,6 +119,8 @@ public class MainActivity extends AppCompatActivity {
         if (incog) s.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         w.setWebViewClient(new WebViewClient() {
+            @Override public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) { BrowserHooks.error(MainActivity.this, v, r, e); }
+            @Override public void onReceivedSslError(WebView v, SslErrorHandler h, android.net.http.SslError e) { BrowserHooks.ssl(MainActivity.this, h, e); }
             @Override public void onReceivedHttpAuthRequest(WebView v, android.webkit.HttpAuthHandler hh, String hst, String realm) { if (VpnManager.connected && VpnManager.user != null && hst.equals(VpnManager.host)) hh.proceed(VpnManager.user, VpnManager.pass); else super.onReceivedHttpAuthRequest(v, hh, hst, realm); }
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) { Sniffer.see(MainActivity.this, t, r.getUrl().toString()); return (Prefs.adBlock(MainActivity.this) && AdBlock.isAd(r.getUrl().getHost())) ? new WebResourceResponse("text/plain", "utf-8", new java.io.ByteArrayInputStream(new byte[0])) : null; }
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return BrowserHooks.nav(MainActivity.this, v, r) || handleInternal(r.getUrl().toString()); }
@@ -126,6 +134,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         w.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) { return BrowserHooks.fileChooser(MainActivity.this, cb, p); }
+            @Override public boolean onCreateWindow(WebView v, boolean dlg, boolean gesture, android.os.Message m) { return BrowserHooks.createWindow(MainActivity.this, gesture, m); }
+            @Override public void onPermissionRequest(PermissionRequest r) { runOnUiThread(() -> BrowserHooks.permission(MainActivity.this, r)); }
+            @Override public void onGeolocationPermissionsShowPrompt(String o, GeolocationPermissions.Callback cb) { BrowserHooks.geo(MainActivity.this, o, cb); }
             @Override public void onShowCustomView(View view, CustomViewCallback cb) { PlayerHook.enter(MainActivity.this, view, cb); }
             @Override public void onHideCustomView() { hideFull(); }
             @Override public void onProgressChanged(WebView v, int p) {
@@ -146,6 +158,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         w.addJavascriptInterface(new VideoBridge(MainActivity.this, t), "MTBridge");
+        w.setOnLongClickListener(v -> BrowserHooks.longPress(MainActivity.this, (WebView) v));
         t.wv = w;
         tabs.add(t);
         switchTo(t);
@@ -345,7 +358,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onResume() {
-        super.onResume();
+        super.onResume(); BrowserHooks.zoom(MainActivity.this);
         if (cur != null) applyTheme();
     }
 
@@ -494,7 +507,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     boolean handleInternal(String u) {
-        if (u == null || !u.startsWith("mt://")) return false;
+        if (u == null) return false; if (!u.startsWith("mt://")) return BrowserHooks.external(this, u);
         String m = u.substring(5);
         if (m.startsWith("bookmarks")) openLib("bookmarks");
         else if (m.startsWith("history")) openLib("history");
@@ -514,6 +527,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int rc, int res, android.content.Intent d) {
         super.onActivityResult(rc, res, d);
+        BrowserHooks.onResult(rc, res, d);
         if (rc == 77 && res == RESULT_OK && d != null && d.getStringExtra("url") != null)
             cur.wv.loadUrl(d.getStringExtra("url"));
     }
@@ -889,5 +903,82 @@ public class MainActivity extends AppCompatActivity {
             in.close();
             return new String(b);
         } catch (Exception e) { return ""; }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int rc, String[] p, int[] g) {
+        super.onRequestPermissionsResult(rc, p, g);
+        BrowserHooks.onPerm(rc, g);
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent i) {
+        super.onNewIntent(i);
+        setIntent(i);
+        handleExt(i);
+    }
+
+    void handleExt(android.content.Intent i) {
+        if (i == null) return;
+        String u = i.getStringExtra("open_url");
+        if (u == null || u.isEmpty()) return;
+        i.removeExtra("open_url");
+        openLink(u);
+    }
+
+    void openLink(String u) {
+        if (cur == null) return;
+        String cu = cur.wv.getUrl();
+        boolean home = cu == null || cu.startsWith("file:///android_asset");
+        if (!home || cur.incog) newTab(false);
+        load(u);
+    }
+
+    String readerAsset() {
+        try {
+            java.io.InputStream in = getAssets().open("reader.js");
+            byte[] b = new byte[in.available()];
+            in.read(b);
+            in.close();
+            return new String(b);
+        } catch (Exception e) { return "'no'"; }
+    }
+
+    void readerMode() {
+        if (cur == null) return;
+        String u = cur.wv.getUrl();
+        if (u == null || u.startsWith("file:")) { toast("Pehle koi website kholo"); return; }
+        String js = readerAsset().replace("__BG__", hex(UiTheme.bg2(this))).replace("__TX__", hex(UiTheme.tx(this))).replace("__AC__", hex(UiTheme.acc(this)));
+        cur.wv.evaluateJavascript(js, r -> { if (r != null && r.contains("no")) toast("Is page me padhne layak article nahi mila"); });
+    }
+
+    void savePdf() {
+        if (cur == null) return;
+        String u = cur.wv.getUrl();
+        if (u == null || u.startsWith("file:")) { toast("Pehle koi website kholo"); return; }
+        try {
+            android.print.PrintManager pm = (android.print.PrintManager) getSystemService(PRINT_SERVICE);
+            String nm = (cur.title == null || cur.title.isEmpty() ? "page" : cur.title).replaceAll("[\\\\/:*?\"<>|]", " ");
+            pm.print(nm, cur.wv.createPrintDocumentAdapter(nm), new android.print.PrintAttributes.Builder().build());
+        } catch (Exception e) { toast("PDF nahi ban saka"); }
+    }
+
+    void pageShot() {
+        if (cur == null) return;
+        if (android.os.Build.VERSION.SDK_INT < 29) { toast("Screenshot ke liye Android 10 ya upar chahiye"); return; }
+        try {
+            View v = cur.wv;
+            Bitmap bm = Bitmap.createBitmap(v.getWidth(), v.getHeight(), Bitmap.Config.ARGB_8888);
+            v.draw(new android.graphics.Canvas(bm));
+            android.content.ContentValues cv = new android.content.ContentValues();
+            cv.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, "MT_page_" + System.currentTimeMillis() + ".jpg");
+            cv.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+            cv.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/MT Browser");
+            Uri uri = getContentResolver().insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cv);
+            java.io.OutputStream os = getContentResolver().openOutputStream(uri);
+            bm.compress(Bitmap.CompressFormat.JPEG, 92, os);
+            os.close();
+            toast("Screenshot save: Pictures/MT Browser");
+        } catch (Throwable e) { toast("Screenshot nahi ho saka"); }
     }
 }

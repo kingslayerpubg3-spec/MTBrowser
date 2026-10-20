@@ -159,6 +159,10 @@ public class SettingsActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cancel", null).show());
         row(g3, R.drawable.ic_m_info, 0xFF8E5CFF, "About MT Browser", "Version 9.0 • Fast, Safe, Smart", null, null);
+        LinearLayout g10 = group("Page aur browser");
+        final TextView[] tzv = new TextView[1];
+        tzv[0] = row(g10, R.drawable.ic_m_text, 0xFF14B8A6, "Text size", Prefs.textZoom(this) + "%", null, vw -> new AlertDialog.Builder(this).setTitle("Text size").setItems(new String[]{"Small (85%)", "Normal (100%)", "Large (120%)", "Extra large (140%)"}, (dd, i) -> { int[] z = {85, 100, 120, 140}; Prefs.setTextZoom(this, z[i]); tzv[0].setText(z[i] + "%"); }).show());
+        row(g10, R.drawable.ic_m_open, 0xFF3563F5, "Default browser banao", "Dusre apps ke links MT Browser me khulein", null, vw -> { try { startActivity(new android.content.Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)); } catch (Exception ex) { startActivity(new android.content.Intent(android.provider.Settings.ACTION_SETTINGS)); } });
         LinearLayout g9 = group("VPN");
         row(g9, R.drawable.ic_m_shield, 0xFF14B8A6, "MT VPN", "Country chuno aur connect karo (browser, downloads, player)", null, vw -> startActivity(new android.content.Intent(this, VpnActivity.class)));
         LinearLayout g8 = group("Safety, speed aur quality");

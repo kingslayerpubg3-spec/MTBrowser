@@ -54,7 +54,7 @@ public class DownloadEngine {
                 it.total = o.optLong("total");
                 it.done = o.optLong("done");
                 it.status = o.optInt("status");
-                if (it.status == ACTIVE) it.status = PAUSED;
+                if (it.status == ACTIVE) { it.status = PAUSED; it.err = "Interrupted"; }
                 items.add(it);
             }
         } catch (Exception e) { }
@@ -122,7 +122,7 @@ public class DownloadEngine {
     }
 
     public static void pause(Item it) {
-        it.stop = true;
+        it.stop = true; it.err = "";
         it.status = PAUSED;
         it.speed = 0;
         save();
@@ -1164,5 +1164,11 @@ public class DownloadEngine {
         long[] r = probeRaw(it);
         ProbeCache.put(it.url, r);
         return r;
+    }
+
+    public static void autoResume(Context c) {
+        init(c);
+        for (Item it : snapshot())
+            if (it.status == PAUSED && "Interrupted".equals(it.err) && !it.running) resume(it);
     }
 }
